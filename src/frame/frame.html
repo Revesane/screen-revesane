@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>рамка записи</title>
+    <style>
+      /* Окно полностью прозрачное: видно только тонкую рамку и значок REC.
+         Из захвата окно исключено (content protection в main), поэтому в видео
+         рамки нет — она нужна только глазам. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        cursor: default;
+        user-select: none;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      #edge {
+        position: fixed;
+        inset: 0;
+        border: 2px solid rgba(255, 82, 101, 0.6);
+        border-radius: 10px;
+        box-shadow:
+          inset 0 0 0 1px rgba(0, 0, 0, 0.28),
+          0 0 18px rgba(255, 82, 101, 0.16);
+        pointer-events: none;
+      }
+      #badge {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(12, 15, 19, 0.72);
+        border: 1px solid rgba(255, 82, 101, 0.55);
+        color: #ffdfe3;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        pointer-events: none;
+        backdrop-filter: blur(6px);
+      }
+      #dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #ff5265;
+        animation: pulse 1.4s ease-out infinite;
+      }
+      #timer {
+        font-variant-numeric: tabular-nums;
+      }
+      #format {
+        color: #ffb3bf;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      #size {
+        color: #9fb0c0;
+        font-weight: 500;
+      }
+      /* Пауза: точка перестаёт пульсировать и желтеет. */
+      body.paused #dot {
+        background: #ffb020;
+        animation: none;
+      }
+      body.paused #badge {
+        border-color: rgba(255, 176, 32, 0.6);
+        color: #ffe6b8;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 101, 0.75);
+        }
+        70% {
+          box-shadow: 0 0 0 9px rgba(255, 82, 101, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 101, 0);
+        }
+      }
+      /* Маленькая область: значок ужимается, размер прячем. */
+      body.tiny #badge {
+        padding: 3px 7px;
+        font-size: 10px;
+        gap: 5px;
+        border-radius: 8px;
+      }
+      body.tiny #size {
+        display: none;
+      }
+      body.narrow #badge {
+        left: 4px;
+        top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="edge"></div>
+    <div id="badge">
+      <span id="dot"></span>
+      <span id="timer">00:00</span>
+      <span id="format"></span>
+      <span id="size"></span>
+    </div>
+    <script src="frame.js"></script>
+  </body>
+</html>

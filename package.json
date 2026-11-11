@@ -1,0 +1,22 @@
+{
+  "name": "screen-revesane",
+  "productName": "Screen Revesane",
+  "version": "0.1.0",
+  "description": "Свой рекордер экрана: весь экран, окно или выделенная область, с микрофоном и системным звуком",
+  "main": "src/main/main.js",
+  "type": "commonjs",
+  "author": "Revesane",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Revesane/screen-revesane.git"
+  },
+  "homepage": "https://github.com/Revesane/screen-revesane#readme",
+  "bugs": "https://github.com/Revesane/screen-revesane/issues",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^45.2.1"
+  }
+}

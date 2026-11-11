@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Screen Revesane — панель записи</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
+      .panel {
+        height: 100%; display: flex; align-items: center; gap: 10px;
+        padding: 0 12px; border-radius: 16px;
+        background: rgba(21, 27, 35, 0.95);
+        border: 1px solid rgba(41, 52, 66, 0.9);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+        color: #e6edf3; -webkit-app-region: drag;
+      }
+      .lamp { width: 9px; height: 9px; border-radius: 50%; background: #e05b57; box-shadow: 0 0 10px rgba(224, 91, 87, 0.75); flex: 0 0 auto; }
+      .lamp.paused { background: #e0a75b; box-shadow: 0 0 10px rgba(224, 167, 91, 0.7); }
+      .timer { font-family: "Consolas", monospace; font-size: 17px; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+      .label { font-size: 11px; color: #8b98a9; }
+      .grow { flex: 1; }
+      button {
+        -webkit-app-region: no-drag;
+        width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(41, 52, 66, 0.9);
+        background: rgba(28, 37, 48, 0.9); color: #b9c6d4; display: grid; place-items: center; cursor: pointer;
+      }
+      button:hover { border-color: rgba(54, 203, 176, 0.6); color: #36cbb0; }
+      button.stop:hover { border-color: #e05b57; color: #e05b57; }
+      svg { width: 15px; height: 15px; fill: currentColor; }
+
+      /* шар */
+      body.ball .panel {
+        border-radius: 50%; padding: 0; justify-content: center; gap: 0;
+        background: radial-gradient(circle at 32% 28%, #24333f, rgba(16, 19, 24, 0.96));
+        border: 2px solid rgba(54, 203, 176, 0.55);
+      }
+      body.ball .timer { font-size: 19px; color: #36cbb0; }
+      body.ball .label, body.ball .btn-pause, body.ball .lamp { display: none; }
+      body.ball .btn-stop {
+        position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px;
+        border-radius: 50%; background: rgba(224, 91, 87, 0.92); color: #fff; border: 0;
+      }
+      body.ball { position: relative; }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <span class="lamp" id="lamp"></span>
+      <span class="timer" id="timer">00:00</span>
+      <span class="label" id="label">запись</span>
+      <span class="grow"></span>
+      <button class="btn-pause" id="pause" title="Пауза (F8)">
+        <svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg>
+      </button>
+      <button class="btn-stop stop" id="stop" title="Стоп (F9)">
+        <svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></svg>
+      </button>
+    </div>
+    <script src="panel.js"></script>
+  </body>
+</html>

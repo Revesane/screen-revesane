@@ -1,0 +1,15 @@
+# Зависимости
+node_modules/
+
+# Сборки и артефакты
+dist/
+out/
+*.asar
+
+# Логи и временные файлы
+*.log
+npm-debug.log*
+
+# Системное
+.DS_Store
+Thumbs.db

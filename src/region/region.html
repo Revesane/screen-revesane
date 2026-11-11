@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Screen Revesane — выделение области</title>
+    <style>
+      html, body {
+        margin: 0; height: 100%; overflow: hidden;
+        background: transparent; cursor: crosshair;
+        font-family: "Segoe UI", system-ui, sans-serif; user-select: none;
+      }
+      /* Замороженный снимок экрана: подложка вместо живого рабочего стола.
+         object-fit: fill — размер картинки задаёт main ровно по дисплею, иначе
+         cover сжимал её по высоте и выделение не совпадало с кадром. */
+      #backdrop {
+        position: fixed; inset: 0;
+        width: 100%; height: 100%;
+        object-fit: fill; object-position: top left;
+        pointer-events: none;
+      }
+      #backdrop[hidden] { display: none; }
+      /* Подсказка и кнопки должны быть выше затемнения рамки: box-shadow у #sel
+         рисуется над всем, что идёт раньше в разметке, и гасил их. */
+      #hint {
+        position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+        z-index: 20;
+        padding: 10px 18px; border-radius: 14px; text-align: center; line-height: 1.55;
+        background: rgba(21, 27, 35, 0.94); border: 1px solid rgba(54, 203, 176, 0.45);
+        color: #e6edf3; font-size: 13.5px; letter-spacing: 0.2px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); pointer-events: none;
+        transition: opacity 120ms ease;
+      }
+      #hint b { color: #36cbb0; font-weight: 600; }
+      #hint .hint-sub { color: #8b98a9; font-size: 12px; }
+      #hint kbd {
+        display: inline-block; padding: 2px 7px; border-radius: 6px;
+        background: rgba(54, 203, 176, 0.16); border: 1px solid rgba(54, 203, 176, 0.4);
+        font: 600 11.5px/1.35 "Consolas", monospace; color: #8df0dc;
+      }
+
+      /* Рамка остаётся после отпускания: внутри почти прозрачно, снаружи затемнение. */
+      #sel {
+        position: fixed; display: none; pointer-events: none;
+        border: 2px solid #36cbb0;
+        background: rgba(54, 203, 176, 0.02);
+        box-shadow: 0 0 0 9999px rgba(8, 10, 13, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.45) inset;
+      }
+      #sel.on { display: block; }
+
+      #size {
+        position: absolute; right: -1px; bottom: -26px;
+        padding: 3px 8px; border-radius: 6px;
+        background: #36cbb0; color: #06231f;
+        font: 600 12px/1.2 "Consolas", monospace; white-space: nowrap;
+      }
+
+      /* Ручки появляются только когда рамку можно править. */
+      .grip {
+        position: absolute; display: none; pointer-events: auto;
+        background: #36cbb0; border-radius: 3px;
+        box-shadow: 0 0 0 2px rgba(6, 35, 31, 0.55);
+      }
+      #sel.adjust .grip,
+      #sel.adjust #move { display: grid; }
+
+      .grip[data-dir="nw"] { left: -7px; top: -7px; width: 12px; height: 12px; cursor: nwse-resize; }
+      .grip[data-dir="ne"] { right: -7px; top: -7px; width: 12px; height: 12px; cursor: nesw-resize; }
+      .grip[data-dir="se"] { right: -7px; bottom: -7px; width: 12px; height: 12px; cursor: nwse-resize; }
+      .grip[data-dir="sw"] { left: -7px; bottom: -7px; width: 12px; height: 12px; cursor: nesw-resize; }
+      .grip[data-dir="n"] { left: 50%; top: -30px; width: 40px; height: 10px; margin-left: -20px; cursor: ns-resize; }
+      .grip[data-dir="s"] { left: 50%; bottom: -6px; width: 40px; height: 10px; margin-left: -20px; cursor: ns-resize; }
+      .grip[data-dir="w"] { left: -6px; top: 50%; width: 10px; height: 40px; margin-top: -20px; cursor: ew-resize; }
+      .grip[data-dir="e"] { right: -6px; top: 50%; width: 10px; height: 40px; margin-top: -20px; cursor: ew-resize; }
+      /* Верхняя ручка не должна спорить с крестиком за место. */
+      .grip[data-dir="n"] { left: 22%; margin-left: -20px; }
+      #sel.narrow .grip[data-dir="n"] { display: none; }
+
+      /* Крестик на верхней линии: переносит рамку целиком. */
+      #move {
+        position: absolute; left: 50%; top: -30px; margin-left: -14px;
+        width: 28px; height: 28px; border-radius: 50%;
+        display: none; place-items: center; pointer-events: auto;
+        background: rgba(21, 27, 35, 0.94); border: 1px solid rgba(54, 203, 176, 0.7);
+        color: #36cbb0; font-size: 15px; line-height: 1; cursor: move;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      }
+      #move:hover { background: rgba(54, 203, 176, 0.18); }
+      /* Рамка у верхнего края экрана: крестик переезжает внутрь. */
+      #sel.grip-inside #move { top: 6px; }
+      #sel.grip-inside .grip[data-dir="n"] { display: none; }
+
+      /* Кнопки подтверждения — внизу экрана, чтобы не зависеть от места рамки. */
+      /* Выбор формата записи: только для видео, живёт рядом с кнопками. */
+      #fmt-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 12px;
+        border-radius: 12px;
+        background: rgba(21, 27, 35, 0.94);
+        border: 1px solid rgba(41, 52, 66, 0.95);
+        color: #8b98a9;
+        font: 600 11.5px/1 "Segoe UI", system-ui, sans-serif;
+        letter-spacing: 0.3px;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+      }
+      #fmt-wrap[hidden] {
+        display: none;
+      }
+      #format {
+        background: rgba(12, 16, 21, 0.92);
+        color: #e6edf3;
+        border: 1px solid rgba(54, 203, 176, 0.35);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font: 600 12px/1 "Segoe UI", system-ui, sans-serif;
+        outline: none;
+        cursor: pointer;
+      }
+      #format:focus {
+        border-color: #36cbb0;
+      }
+
+      #actions {
+        position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+        z-index: 20;
+        display: flex; gap: 10px; align-items: center;
+      }
+      #actions[hidden] { display: none; }
+      /* display: inline-flex у .act перебивает атрибут hidden из UA-стилей,
+         поэтому скрытая кнопка «Копировать» оставалась видимой. */
+      .act[hidden] { display: none; }
+      .act {
+        display: inline-flex; align-items: center; gap: 9px;
+        height: 44px; padding: 0 20px; border-radius: 12px; cursor: pointer;
+        font: 600 13.5px/1 "Segoe UI", system-ui, sans-serif;
+        border: 1px solid rgba(41, 52, 66, 0.95);
+        background: rgba(21, 27, 35, 0.94); color: #b9c6d4;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+      }
+      .act:hover { color: #e6edf3; }
+      /* Кнопка подтверждения того же цвета, что и рамка, и с мягким свечением:
+         раньше её просто не замечали. */
+      .act.primary {
+        background: #36cbb0; border-color: #7ee9d3; color: #06231f;
+        box-shadow: 0 0 0 1px rgba(54, 203, 176, 0.45), 0 0 26px rgba(54, 203, 176, 0.35),
+          0 10px 26px rgba(0, 0, 0, 0.45);
+      }
+      .act.primary:hover { filter: brightness(1.08); }
+      .act kbd {
+        font: 600 11px/1 "Consolas", monospace;
+        padding: 4px 7px; border-radius: 6px;
+        background: rgba(6, 35, 31, 0.16); border: 1px solid rgba(6, 35, 31, 0.22);
+        color: #0b3d35;
+      }
+      .act:not(.primary) kbd {
+        background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.14);
+        color: #b9c6d4;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="backdrop" alt="" hidden />
+    <div id="hint">Тяните рамку мышью · <b>Esc</b> — отмена</div>
+    <div id="actions" hidden>
+      <label id="fmt-wrap" hidden>
+        <span>Формат</span>
+        <select id="format"></select>
+      </label>
+      <button id="accept" class="act primary"><span id="accept-label">Готово</span><kbd id="accept-key">Enter</kbd></button>
+      <button id="copy" class="act"><span>Копировать</span><kbd>Ctrl+C</kbd></button>
+      <button id="cancel" class="act"><span>Отмена</span><kbd>Esc</kbd></button>
+    </div>
+    <div id="sel">
+      <div class="grip" data-dir="nw"></div>
+      <div class="grip" data-dir="n"></div>
+      <div class="grip" data-dir="ne"></div>
+      <div class="grip" data-dir="e"></div>
+      <div class="grip" data-dir="se"></div>
+      <div class="grip" data-dir="s"></div>
+      <div class="grip" data-dir="sw"></div>
+      <div class="grip" data-dir="w"></div>
+      <div id="move" title="Перенести область">✛</div>
+      <span id="size"></span>
+    </div>
+    <script src="region.js"></script>
+  </body>
+</html>
