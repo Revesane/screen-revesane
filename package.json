@@ -1,7 +1,7 @@
 {
   "name": "screen-revesane",
   "productName": "Screen Revesane",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Свой рекордер экрана: весь экран, окно или выделенная область, с микрофоном и системным звуком",
   "main": "src/main/main.js",
   "type": "commonjs",
@@ -39,8 +39,18 @@
       "icon": "build/icon.png",
       "category": "public.app-category.video",
       "target": [
-        { "target": "dmg", "arch": ["universal"] },
-        { "target": "zip", "arch": ["universal"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
       "identity": null,
       "artifactName": "Screen-Revesane-${version}-mac.${ext}"
