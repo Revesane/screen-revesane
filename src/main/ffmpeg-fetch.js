@@ -124,8 +124,12 @@ function expandArchive(zipPath, destDir) {
   });
 }
 
-/** Ищет bin/<name> внутри распакованного архива; запасной вариант — любой <name>. */
-async function findTool(root, name) {
+/**
+ * Ищет bin/<name> внутри распакованного архива; запасной вариант — любой <name>.
+ * archDir — обязательный фрагмент пути: в пакете ffprobe-static лежат сборки
+ * под все ОС и архитектуры, без фильтра можно взять чужую (arm64 на Intel).
+ */
+async function findTool(root, name, archDir = null) {
   let found = null;
   let fallback = null;
   const walk = async (dir, depth) => {
@@ -140,6 +144,7 @@ async function findTool(root, name) {
       if (found && fallback) return;
       const full = path.join(dir, entry.name);
       if (entry.isFile() && entry.name.toLowerCase() === name.toLowerCase()) {
+        if (archDir && !full.includes(archDir)) continue;
         if (/(^|[\\/])bin$/i.test(dir)) found = full;
         else fallback ??= full;
       } else if (entry.isDirectory()) {
@@ -256,7 +261,7 @@ async function ensureFfmpegMac({ toolsDir, havePath = false, onEvent = () => {},
     const unpackDir = path.join(tempDir, "ffprobe-pkg");
     await fsp.mkdir(unpackDir, { recursive: true });
     await extractTar(tgzPath, unpackDir);
-    const probe = await findTool(unpackDir, "ffprobe");
+    const probe = await findTool(unpackDir, "ffprobe", `${path.sep}darwin${path.sep}${macArch()}${path.sep}`);
     if (!probe) throw new Error("в пакете ffprobe-static нет bin/darwin/<arch>/ffprobe");
     await installExecutable(probe, managedFfprobe);
     if (!(await executableWorks(managedFfprobe).catch(() => false))) {

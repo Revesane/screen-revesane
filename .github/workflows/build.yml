@@ -29,9 +29,9 @@ jobs:
           path: dist/Screen-Revesane-*.exe
 
   build-macos:
-    # Сборка mac-zip на Linux: DMG требует macOS-раннер (hdiutil), zip
-    # пакуется на любой системе. Приложение чистое, без нативных модулей.
-    runs-on: ubuntu-latest
+    # Только macOS-раннер: universal (Intel + Apple Silicon) требует lipo,
+    # а DMG — hdiutil. Linux молча сводит universal к одной архитектуре x64.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,11 +39,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx electron-builder --mac zip --publish never
+      - run: npm run dist:mac
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: dist/Screen-Revesane-*-mac.*
+          path: |
+            dist/Screen-Revesane-*-mac.zip
+            dist/Screen-Revesane-*-mac.dmg
 
   release:
     needs: [build-windows, build-macos]
