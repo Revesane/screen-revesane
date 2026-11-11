@@ -1,7 +1,7 @@
 {
   "name": "screen-revesane",
   "productName": "Screen Revesane",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Свой рекордер экрана: весь экран, окно или выделенная область, с микрофоном и системным звуком",
   "main": "src/main/main.js",
   "type": "commonjs",
@@ -14,9 +14,48 @@
   "homepage": "https://github.com/Revesane/screen-revesane#readme",
   "bugs": "https://github.com/Revesane/screen-revesane/issues",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
   },
   "devDependencies": {
-    "electron": "^45.2.1"
+    "electron": "^45.2.1",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.screenrevesane.app",
+    "productName": "Screen Revesane",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "package.json",
+      "src/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.video",
+      "target": [
+        { "target": "dmg", "arch": ["universal"] },
+        { "target": "zip", "arch": ["universal"] }
+      ],
+      "identity": null,
+      "artifactName": "Screen-Revesane-${version}-mac.${ext}"
+    },
+    "dmg": {
+      "title": "Screen Revesane"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Screen Revesane",
+      "artifactName": "Screen-Revesane-Setup-${version}.${ext}"
+    }
   }
 }

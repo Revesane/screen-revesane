@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld("api", {
   onRecordCommand: (handler) => ipcRenderer.on("record:command", (_e, command) => handler(command)),
   onPreviewProgress: (handler) => ipcRenderer.on("preview:progress", (_e, payload) => handler(payload)),
   onCursor: (handler) => ipcRenderer.on("cursor:point", (_e, point) => handler(point)),
+  onFfmpegState: (handler) => ipcRenderer.on("ffmpeg:state", (_e, state) => handler(state)),
   chooseDir: (current) => ipcRenderer.invoke("dialog:chooseDir", current),
   chooseImage: (current) => ipcRenderer.invoke("dialog:chooseImage", current),
   panelState: (state) => ipcRenderer.send("panel:state", state),

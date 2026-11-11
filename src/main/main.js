@@ -2,7 +2,7 @@
 
 const {
   app, BrowserWindow, Menu, clipboard, crashReporter, desktopCapturer, dialog, globalShortcut, ipcMain,
-  nativeImage, screen, session, shell,
+  nativeImage, net, screen, session, shell,
 } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
@@ -11,6 +11,7 @@ const { spawn } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const log = require("./log");
 const watermark = require("./watermark");
+const ffmpegFetch = require("./ffmpeg-fetch");
 
 // Кадры и таймеры не должны замирать, когда окно свёрнуто или спрятано:
 // запись идёт в setInterval-цикле renderer-а.
@@ -43,6 +44,11 @@ const ROOT = path.join(__dirname, "..", "..");
 const APP_ICON = path.join(ROOT, "src", "assets", "icon.png");
 const OUTPUT_DIR = path.join(app.getPath("videos"), "Screen Revesane");
 const SETTINGS_PATH = path.join(app.getPath("userData"), "settings.json");
+/** Куда складывается автоматически скачанный ffmpeg, если своего нет в PATH. */
+const TOOLS_DIR = path.join(app.getPath("userData"), "tools");
+/** Loopback-звук экрана умеет отдавать только Windows: на macOS системный
+ * звук пишется с виртуального устройства (BlackHole), выбранного источником. */
+const LOOPBACK_SUPPORTED = process.platform === "win32";
 
 /**
  * Коды ошибок: пользователь видит код, лог — расшифровку и контекст.
@@ -534,7 +540,11 @@ function installDisplayMediaHandler() {
               ? screens.find((s) => String(s.display_id) === String(audioOnly.displayId))
               : null;
             const source = byDisplay ?? screens[0] ?? sources[0];
-            const wanted = { video: source, audio: "loopback" };
+            // Loopback есть только на Windows; на macOS системный звук —
+            // через виртуальное устройство (BlackHole), выбранное источником.
+            const wanted = LOOPBACK_SUPPORTED
+              ? { video: source, audio: "loopback" }
+              : { video: source };
             try {
               callback(wanted);
             } catch {
@@ -546,8 +556,9 @@ function installDisplayMediaHandler() {
           const source =
             sources.find((s) => s.id === target.sourceId) ?? sources[0];
           const wanted = { video: source };
-          // Системный (loopback) звук на Windows доступен только для экрана.
-          if (target.systemAudio && target.kind === "screen") {
+          // Системный (loopback) звук доступен только для экрана и только
+          // на Windows; на macOS — виртуальное устройство источником звука.
+          if (target.systemAudio && target.kind === "screen" && LOOPBACK_SUPPORTED) {
             wanted.audio = "loopback";
           }
           try {
@@ -865,30 +876,98 @@ function simulateRegionDrag(win) {
 
 // ─────────────────────────────────────────────────────────── ffmpeg
 
-function probeFfmpeg() {
+let ffmpegSource = "path"; // откуда взялся ffmpeg: "path" (свой в PATH) или "auto" (скачан)
+
+/** Команда запуска ffmpeg: из PATH или скачанная копия. */
+function ffmpegBin() {
+  return ffmpegPath || "ffmpeg";
+}
+
+/** Команда запуска ffprobe: из PATH или скачанная копия. */
+function ffprobeBin() {
+  return ffprobePath || "ffprobe";
+}
+
+/**
+ * События автодоставки ffmpeg: пишем в лог и показываем в интерфейсе.
+ * На «ready» ffmpeg уже скачан и проверен — после этого доступны все форматы,
+ * и можно повторно попытаться починить .part-файлы, которым ffmpeg не хватало.
+ */
+function handleFfmpegEvent(event) {
+  const summary = {
+    start: "своего ffmpeg нет — скачиваю в %APPDATA%\\Screen Revesane\\tools",
+    download: `источник: ${event.source}`,
+    progress: `загрузка ${Number(event.percent) || 0}%`,
+    extract: `распаковка (${event.source})`,
+    retry: `${event.source}: не получилось — ${event.error}`,
+    ready: `готово (${event.source})`,
+    failed: `не удалось: ${event.error}`,
+  }[event.phase];
+  if (summary) {
+    if (event.phase === "failed" || event.phase === "retry") log.warn("ffmpeg", summary);
+    else log.info("ffmpeg", summary);
+  }
+  if (event.phase === "ready") {
+    ffmpegPath = event.ffmpegPath;
+    ffprobePath = event.ffprobePath;
+    ffmpegSource = "auto";
+    mainWindow?.webContents.send("ffmpeg:state", { phase: "ready" });
+    void recoverPartFiles().catch((err) => log.error("capture", `recoverPartFiles: ${err.message}`));
+  } else if (event.phase === "failed") {
+    mainWindow?.webContents.send("ffmpeg:state", { phase: "failed", error: event.error });
+  } else if (event.phase === "start") {
+    mainWindow?.webContents.send("ffmpeg:state", { phase: "start" });
+  } else if (event.phase === "progress") {
+    mainWindow?.webContents.send("ffmpeg:state", { phase: "progress", percent: event.percent });
+  }
+}
+
+/**
+ * Где искать ffmpeg/ffprobe. GUI-приложения на macOS получают урезанный PATH
+ * без /opt/homebrew/bin и /usr/local/bin, поэтому установленный brew ffmpeg
+ * нужно проверять по явным путям — имя «ffmpeg» там не найдётся.
+ */
+const FFMPEG_CANDIDATES = ["ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"];
+const FFPROBE_CANDIDATES = ["ffprobe", "/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe"];
+
+/** Первый рабочий кандидат из списка: полный путь или имя (в PATH). */
+function probeBinary(candidates, marker) {
   return new Promise((resolve) => {
-    const child = spawn("ffmpeg", ["-hide_banner", "-version"], {
-      windowsHide: true,
-    });
-    let seen = false;
-    child.stdout.once("data", () => {
-      seen = true;
-    });
-    child.on("error", () => resolve(null));
-    child.on("close", (code) => resolve(seen && code === 0 ? "ffmpeg" : null));
+    let index = 0;
+    const tryNext = () => {
+      if (index >= candidates.length) {
+        resolve(null);
+        return;
+      }
+      const file = candidates[index];
+      index += 1;
+      let out = "";
+      let child;
+      try {
+        child = spawn(file, ["-hide_banner", "-version"], { windowsHide: true });
+      } catch {
+        tryNext();
+        return;
+      }
+      child.stdout.on("data", (chunk) => {
+        out += String(chunk);
+      });
+      child.on("error", () => tryNext());
+      child.on("close", (code) => {
+        if (code === 0 && new RegExp(marker, "i").test(out)) resolve(file);
+        else tryNext();
+      });
+    };
+    tryNext();
   });
 }
 
+function probeFfmpeg() {
+  return probeBinary(FFMPEG_CANDIDATES, "ffmpeg version");
+}
+
 function probeFfprobe() {
-  return new Promise((resolve) => {
-    const child = spawn("ffprobe", ["-hide_banner", "-version"], { windowsHide: true });
-    let seen = false;
-    child.stdout.once("data", () => {
-      seen = true;
-    });
-    child.on("error", () => resolve(null));
-    child.on("close", (code) => resolve(seen && code === 0 ? "ffprobe" : null));
-  });
+  return probeBinary(FFPROBE_CANDIDATES, "ffprobe version");
 }
 
 function convertToMp4(webmPath) {
@@ -903,7 +982,7 @@ function convertToMp4(webmPath) {
       "-movflags", "+faststart",
       mp4Path,
     ];
-    const child = spawn("ffmpeg", args, { windowsHide: true });
+    const child = spawn(ffmpegBin(), args, { windowsHide: true });
     let stderr = "";
     child.stderr.on("data", (d) => {
       stderr += String(d);
@@ -1025,7 +1104,7 @@ function convertContainer(sourcePath, container, options = {}) {
         ];
 
   return new Promise((resolve) => {
-    const child = spawn("ffmpeg", args, { windowsHide: true });
+    const child = spawn(ffmpegBin(), args, { windowsHide: true });
     let stderr = "";
     child.stderr.on("data", (d) => {
       stderr += String(d);
@@ -1125,7 +1204,7 @@ function probeMedia(filePath) {
   return new Promise((resolve) => {
     if (!ffprobePath) return resolve(null);
     const child = spawn(
-      "ffprobe",
+      ffprobeBin(),
       ["-v", "error", "-print_format", "json", "-show_streams", "-show_format", filePath],
       { windowsHide: true },
     );
@@ -1253,7 +1332,7 @@ async function speedMedia({ filePath, speed }) {
 
 function runFfmpeg(args) {
   return new Promise((resolve) => {
-    const child = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...args], { windowsHide: true });
+    const child = spawn(ffmpegBin(), ["-hide_banner", "-loglevel", "error", "-y", ...args], { windowsHide: true });
     let stderr = "";
     child.stderr.on("data", (d) => {
       stderr += String(d);
@@ -1273,7 +1352,7 @@ function runFfmpeg(args) {
 function runFfmpegProgress(args, onTick) {
   return new Promise((resolve) => {
     const child = spawn(
-      "ffmpeg",
+      ffmpegBin(),
       [
         "-hide_banner", "-loglevel", "error", "-nostats",
         "-progress", "pipe:1", "-stats_period", "0.2",
@@ -1524,7 +1603,11 @@ async function startCapture(payload) {
   capture.ext = ext;
   capture.audio = Boolean(payload.audio);
   capture.selfVisible = Boolean(payload.selfVisible);
+  // Защита от захвата выставляется явно под цель записи: перечисление
+  // источников могло оставить свои окна «открытыми», а запись своего окна —
+  // наоборот, требует их снять. Иначе после списка оставался гонный статус.
   if (capture.selfVisible) setSelfProtection(false);
+  else setSelfProtection(readSettings().hideSelf !== false);
   try {
     capture.stream = fs.createWriteStream(partPath);
   } catch (err) {
@@ -2140,6 +2223,7 @@ function registerIpc() {
       logDir: log.dir(),
       crashDumps: CRASH_DUMPS_DIR,
       ffmpeg: Boolean(ffmpegPath),
+      ffmpegSource: ffmpegSource,
       hotkeys: settings.hotkeys ?? DEFAULT_SETTINGS.hotkeys,
       containers: ["auto", "mp4", "mkv", "mov", "webm", "wmv", "f4v", "ts", "gif"],
       audioFormats: ["mp3", "m4a", "wma", "aac", "opus", "flac", "wav"],
@@ -2531,9 +2615,24 @@ function checkHotkey({ name, accelerator }) {
 // ─────────────────────────────────────────────────────────── старт
 
 app.whenReady().then(async () => {
-  Menu.setApplicationMenu(null);
+  // На macOS пустое меню ломает Cmd+C/V и выход: mac-приложению нужен
+  // стандартный набор ролей. На Windows свой рамочный интерфейс — меню нет.
+  if (process.platform === "darwin") {
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate([{ role: "appMenu" }, { role: "editMenu" }, { role: "windowMenu" }]),
+    );
+  } else {
+    Menu.setApplicationMenu(null);
+  }
   // Свой идентификатор: панель задач группирует окна и берёт значок по нему, а не у Electron.
   app.setAppUserModelId("com.screenrevesane.app");
+  if (process.platform === "darwin" && app.dock) {
+    try {
+      app.dock.setIcon(APP_ICON);
+    } catch {
+      /* значок дока не критичен */
+    }
+  }
   log.init(app.getPath("userData"));
   log.info("app", `${app.getName()} ${app.getVersion()} · Electron ${process.versions.electron} · Node ${process.versions.node}`);
   log.info("app", `логи: ${log.file()}`);
@@ -2541,6 +2640,17 @@ app.whenReady().then(async () => {
   ffmpegPath = await probeFfmpeg();
   ffprobePath = await probeFfprobe();
   log.info("app", `ffmpeg: ${ffmpegPath ? "найден" : "нет"}, ffprobe: ${ffprobePath ? "найден" : "нет"}`);
+  // Своего ffmpeg нет — берём скачанную копию, а если и её нет, качаем в фоне:
+  // интерфейс поднимается сразу, ffmpeg приезжает сам и без прав администратора.
+  if (!ffmpegPath || !ffprobePath) {
+    void ffmpegFetch.ensureFfmpeg({
+      toolsDir: TOOLS_DIR,
+      havePath: Boolean(ffmpegPath && ffprobePath),
+      // Сеть — стек Chromium: системный прокси работает так же, как в браузере.
+      fetch: (url, init) => net.fetch(url, init),
+      onEvent: handleFfmpegEvent,
+    });
+  }
   installDisplayMediaHandler();
   registerIpc();
   createMainWindow();

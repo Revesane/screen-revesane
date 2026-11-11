@@ -280,6 +280,11 @@ function stopPreviewMic() {
 
 async function startPreviewSystem() {
   stopPreviewSystem();
+  // На macOS loopback нет: без выбранного входа (BlackHole) индикации не будет.
+  if (IS_MAC && !systemSourceId()) {
+    uiLog("warn", "индикация системного звука на macOS требует BlackHole — выберите его источником звука компьютера", "audio");
+    return;
+  }
   // Номер попытки: если за время открытия превью его отменили (или началась
   // запись), пришедший позже поток сразу закрываем, а не держим в фоне.
   const generation = previewMeters.generation;
@@ -2957,9 +2962,12 @@ function systemSourceId() {
   return state.settings?.systemSourceId || "";
 }
 
+/** Loopback системного звука умеет только Windows: macOS нужен BlackHole. */
+const IS_MAC = /Mac/i.test(navigator.userAgent || "");
+
 /** Нужен ли loopback Windows: системный звук включён и отдельный вход не выбран. */
 function loopbackWanted() {
-  return Boolean(state.settings?.systemAudio) && !systemSourceId();
+  return Boolean(state.settings?.systemAudio) && !systemSourceId() && !IS_MAC;
 }
 
 const SWITCHES = {
@@ -3177,7 +3185,9 @@ async function renderInfo() {
     : "ffmpeg не найден: запись идёт в том виде, который даёт Chromium (MP4 или WebM), перекод в другие контейнеры недоступен.";
   $("about-version").textContent = `${info.name} ${info.version}`;
   $("about-runtime").textContent = `${info.electron} / ${info.chrome} / ${info.node}`;
-  $("about-ffmpeg").textContent = info.ffmpeg ? "найден в PATH" : "не найден";
+  $("about-ffmpeg").textContent = info.ffmpeg
+    ? info.ffmpegSource === "auto" ? "скачан автоматически" : "найден в PATH"
+    : "не найден";
   $("about-settings").textContent = info.settingsPath || "—";
   if ($("about-build")) {
     const stamp = info.buildTime ? new Date(info.buildTime) : null;
@@ -3692,6 +3702,28 @@ function bindEvents() {
 
   window.api.onCursor((point) => recorder.setCursor(point));
   window.api.onPreviewProgress(handlePreviewProgress);
+
+  // Автодоставка ffmpeg: свой не нашёлся — скачиваем в фоне и сообщаем сюда.
+  window.api.onFfmpegState?.((event) => {
+    if (state.recording) return; // запись важнее подсказок о загрузке
+    if (event.phase === "start") {
+      toast("ffmpeg не найден — скачиваю автоматически, это один раз (~100 МБ)");
+      $("cap-hint").textContent = "Скачиваю ffmpeg… он нужен для MKV, GIF, склейки и обрезки";
+    } else if (event.phase === "progress") {
+      $("cap-hint").textContent = `Скачиваю ffmpeg… ${Number(event.percent) || 0}%`;
+    } else if (event.phase === "ready") {
+      toast("ffmpeg установлен — теперь доступны все форматы, склейка и обрезка", "ok");
+      $("cap-hint").textContent = "ffmpeg установлен — все форматы доступны";
+      void (async () => {
+        state.info = await window.api.info();
+        renderInfo();
+        refreshCodecOptions();
+      })();
+    } else if (event.phase === "failed") {
+      toast(`ffmpeg скачать не удалось (${event.error || "сеть"}) — доступны MP4 и WebM`, "error");
+      $("cap-hint").textContent = "ffmpeg недоступен: перекоды в другие форматы отключены";
+    }
+  });
 
   window.addEventListener("keydown", (event) => {
     if ($("editor").hidden) return;

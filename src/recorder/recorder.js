@@ -1,5 +1,8 @@
 "use strict";
 
+/** Loopback системного звука умеет только Windows: macOS нужен BlackHole. */
+const IS_MAC = /Mac/i.test(navigator.userAgent || "");
+
 /**
  * Движок записи: getDisplayMedia → canvas-композиция (обрезка области,
  * PiP веб-камеры) → MediaRecorder → чанки в главный процесс.
@@ -176,8 +179,13 @@ export class Recorder {
 
     // Звук компьютера берём либо loopback-ом Windows, либо с выбранного входа
     // (интерфейс, виртуальный кабель): DAW на ASIO в микшер Windows не попадает.
-    const wantLoopback = Boolean(systemAudio) && !systemDevice;
+    // На macOS loopback недоступен: системный звук — только через виртуальное
+    // устройство (BlackHole), выбранное источником звука компьютера.
+    const wantLoopback = Boolean(systemAudio) && !systemDevice && !IS_MAC;
     const warnings = [];
+    if (IS_MAC && systemAudio && !systemDevice) {
+      warnings.push("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера");
+    }
     const mimeType = pickMimeType();
     if (mimeType === null) throw new Error("MediaRecorder недоступен в этом окне");
 
@@ -517,8 +525,13 @@ export class Recorder {
   }) {
     if (this.active) throw new Error("запись уже идёт");
 
-    const wantLoopback = Boolean(systemAudio) && !systemDevice;
+    // На macOS loopback недоступен: системный звук — через виртуальное
+    // устройство (BlackHole), выбранное источником звука компьютера.
+    const wantLoopback = Boolean(systemAudio) && !systemDevice && !IS_MAC;
     const warnings = [];
+    if (IS_MAC && systemAudio && !systemDevice) {
+      warnings.push("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера");
+    }
     const mimeType = [
       'audio/webm;codecs="opus"',
       "audio/webm",

@@ -1,0 +1,58 @@
+name: Build releases
+
+# Сборка установщиков при пуше версии (v*) или запуске вручную:
+# Windows — NSIS-установщик, macOS — DMG и zip (universal, без подписи).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/Screen-Revesane-*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/Screen-Revesane-*-mac.*
+
+  release:
+    needs: [build-windows, build-macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
