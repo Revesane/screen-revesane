@@ -31,7 +31,9 @@ jobs:
   build-macos:
     # Только macOS-раннер: universal (Intel + Apple Silicon) требует lipo,
     # а DMG — hdiutil. Linux молча сводит universal к одной архитектуре x64.
-    runs-on: macos-latest
+    # Intel-раннер: очередь arm64 у GitHub регулярно не выдаёт раннер за 15 минут,
+    # а universal собирается и на Intel (обе архитектуры сливаются через lipo).
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
