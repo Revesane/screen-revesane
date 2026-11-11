@@ -18,34 +18,34 @@
         </div>
         <div class="titlebar-spacer"></div>
         <div class="win-actions">
-          <button id="btn-compact" class="win-btn" title="Компактный режим" aria-label="Компактный режим"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
-          <button id="btn-min" class="win-btn" title="Свернуть" aria-label="Свернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
-          <button id="btn-max" class="win-btn" title="Развернуть" aria-label="Развернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg></button>
-          <button id="btn-close" class="win-btn win-btn-close" title="Закрыть" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <button id="btn-compact" class="win-btn" title="Компактный режим" aria-label="Компактный режим" data-i18n-title="Компактный режим" data-i18n-aria-label="Компактный режим"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
+          <button id="btn-min" class="win-btn" title="Свернуть" aria-label="Свернуть" data-i18n-title="Свернуть" data-i18n-aria-label="Свернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <button id="btn-max" class="win-btn" title="Развернуть" aria-label="Развернуть" data-i18n-title="Развернуть" data-i18n-aria-label="Развернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg></button>
+          <button id="btn-close" class="win-btn win-btn-close" title="Закрыть" aria-label="Закрыть" data-i18n-title="Закрыть" data-i18n-aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       </header>
 
       <nav class="rail">
         <button class="rail-btn is-active" data-view="capture">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2"/><path d="M6 10.4V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8.6"/></svg>
-          <span>Главная</span>
+          <span data-i18n="Главная">Главная</span>
         </button>
         <button class="rail-btn" data-view="settings">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.9 7.9l1.9 1.1M17.2 15l1.9 1.1M4.9 16.1l1.9-1.1M17.2 9l1.9-1.1"/></svg>
-          <span>Настройки</span>
+          <span data-i18n="Настройки">Настройки</span>
         </button>
         <button class="rail-btn" data-view="about">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 11v5.4M12 7.8v.4"/></svg>
-          <span>О программе</span>
+          <span data-i18n="О программе">О программе</span>
         </button>
         <button class="rail-btn" data-view="help">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 1.9-2.4 3.6M12 17.2v.3"/></svg>
-          <span>Помощь</span>
+          <span data-i18n="Помощь">Помощь</span>
         </button>
         <div class="rail-spacer"></div>
         <div class="rail-state" id="rail-state">
           <span class="lamp" id="lamp"></span>
-          <span id="rail-state-text">готов</span>
+          <span id="rail-state-text" data-i18n="готов">готов</span>
         </div>
       </nav>
 
@@ -56,37 +56,37 @@
             <div class="mode-select">
               <button id="mode-select-btn" class="mode-select-btn">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                <span id="mode-select-label">Запись экрана</span>
+                <span id="mode-select-label" data-i18n="Запись экрана">Запись экрана</span>
                 <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               <div class="mode-menu" id="mode-menu" hidden>
                 <button class="preset" data-preset="screen:video">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                  <span>Запись экрана</span>
+                  <span data-i18n="Запись экрана">Запись экрана</span>
                 </button>
                 <button class="preset" data-preset="window:video">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
-                  <span>Запись окна</span>
+                  <span data-i18n="Запись окна">Запись окна</span>
                 </button>
                 <button class="preset" data-preset="region:video">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/></svg>
-                  <span>Выделить и записать видео</span>
+                  <span data-i18n="Выделить и записать видео">Выделить и записать видео</span>
                 </button>
                 <button class="preset" data-preset="audio:video">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
-                  <span>Аудио запись</span>
+                  <span data-i18n="Аудио запись">Аудио запись</span>
                 </button>
                 <button class="preset" data-preset="screen:shot">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><circle cx="12" cy="10.5" r="3"/></svg>
-                  <span>Скриншот экрана</span>
+                  <span data-i18n="Скриншот экрана">Скриншот экрана</span>
                 </button>
                 <button class="preset" data-preset="window:shot">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><circle cx="16" cy="14" r="2.4"/></svg>
-                  <span>Скриншот окна</span>
+                  <span data-i18n="Скриншот окна">Скриншот окна</span>
                 </button>
                 <button class="preset" data-preset="region:shot">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="12" r="2.6"/></svg>
-                  <span>Скриншот области</span>
+                  <span data-i18n="Скриншот области">Скриншот области</span>
                 </button>
               </div>
             </div>
@@ -98,8 +98,8 @@
               <div class="card">
                 <div class="card-head">
                   <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-                  <span class="card-title">Источник</span>
-                  <span class="card-status" id="source-status">Весь экран</span>
+                  <span class="card-title" data-i18n="Источник">Источник</span>
+                  <span class="card-status" id="source-status" data-i18n="Весь экран">Весь экран</span>
                 </div>
                 <div class="card-body">
                   <select id="sel-source"></select>
@@ -109,7 +109,7 @@
                   <span class="region-label mono" id="region-label"></span>
                 </div>
                 <div class="card-foot">
-                  <button class="tiny" id="btn-pick-region">Выделить область</button>
+                  <button class="tiny" id="btn-pick-region" data-i18n="Выделить область">Выделить область</button>
                 </div>
               </div>
 
@@ -117,20 +117,20 @@
               <div class="card">
                 <div class="card-head">
                   <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg></span>
-                  <span class="card-title">Веб-камера</span>
-                  <span class="card-status" id="camera-note">камера не найдена</span>
+                  <span class="card-title" data-i18n="Веб-камера">Веб-камера</span>
+                  <span class="card-status" id="camera-note" data-i18n="камера не найдена">камера не найдена</span>
                 </div>
                 <div class="card-body">
-                  <div class="card-empty" id="camera-empty">Предпросмотр<br>по кнопке «Проверить»</div>
+                  <div class="card-empty" id="camera-empty"><span data-i18n="Предпросмотр">Предпросмотр</span><br><span data-i18n="по кнопке «Проверить»">по кнопке «Проверить»</span></div>
                   <div class="card-preview" id="camera-preview-wrap" hidden>
                     <video id="camera-preview" playsinline muted></video>
                   </div>
                 </div>
                 <div class="card-foot">
-                  <button class="switch compact" id="sw-webcam"><span class="switch-name">Вкл</span><span class="switch-dot"></span></button>
+                  <button class="switch compact" id="sw-webcam"><span class="switch-name" data-i18n="Вкл">Вкл</span><span class="switch-dot"></span></button>
                   <span class="card-actions">
-                    <button class="tiny" id="btn-camera-test">Проверить</button>
-                    <button class="tiny" id="btn-camera-photo">Фото</button>
+                    <button class="tiny" id="btn-camera-test" data-i18n="Проверить">Проверить</button>
+                    <button class="tiny" id="btn-camera-photo" data-i18n="Фото">Фото</button>
                   </span>
                 </div>
               </div>
@@ -139,15 +139,15 @@
               <div class="card">
                 <div class="card-head">
                   <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2-5 3 10 3-14 3 14 2-5h3"/></svg></span>
-                  <span class="card-title">Система</span>
-                  <span class="card-status">системный звук</span>
+                  <span class="card-title" data-i18n="Система">Система</span>
+                  <span class="card-status" data-i18n="системный звук">системный звук</span>
                 </div>
                 <div class="card-body">
-                  <select id="sel-sysource" title="Откуда брать звук компьютера: Windows или вход звукового интерфейса"></select>
+                  <select id="sel-sysource" title="Откуда брать звук компьютера: Windows или вход звукового интерфейса" data-i18n-title="Откуда брать звук компьютера: Windows или вход звукового интерфейса"></select>
                   <div class="meter is-idle" id="system-meter"><span class="meter-fill" id="system-level-fill"></span></div>
                 </div>
                 <div class="card-foot">
-                  <button class="switch compact" id="sw-system"><span class="switch-name">Вкл</span><span class="switch-dot"></span></button>
+                  <button class="switch compact" id="sw-system"><span class="switch-name" data-i18n="Вкл">Вкл</span><span class="switch-dot"></span></button>
                 </div>
               </div>
 
@@ -155,15 +155,15 @@
               <div class="card">
                 <div class="card-head">
                   <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
-                  <span class="card-title">Микрофон</span>
-                  <span class="card-status" id="mic-note">голос</span>
+                  <span class="card-title" data-i18n="Микрофон">Микрофон</span>
+                  <span class="card-status" id="mic-note" data-i18n="голос">голос</span>
                 </div>
                 <div class="card-body">
                   <div class="meter is-idle" id="mic-level"><span class="meter-fill" id="mic-level-fill"></span></div>
                 </div>
                 <div class="card-foot">
-                  <button class="switch compact" id="sw-mic"><span class="switch-name">Вкл</span><span class="switch-dot"></span></button>
-                  <button class="tiny" id="btn-mic-test">Тест</button>
+                  <button class="switch compact" id="sw-mic"><span class="switch-name" data-i18n="Вкл">Вкл</span><span class="switch-dot"></span></button>
+                  <button class="tiny" id="btn-mic-test" data-i18n="Тест">Тест</button>
                   <span class="level-db mono" id="mic-db">—</span>
                 </div>
               </div>
@@ -180,34 +180,34 @@
                   <span class="rec-lamp" id="rec-lamp"></span>
                   <span class="timer" id="timer">00:00</span>
                 </div>
-                <span class="status" id="status">Готов</span>
-                <button id="btn-pause" class="ghost small" hidden>Пауза <kbd>F8</kbd></button>
-                <div class="rec-hint" id="cap-hint">Готово к записи.</div>
+                <span class="status" id="status" data-i18n="Готов">Готов</span>
+                <button id="btn-pause" class="ghost small" hidden><span data-i18n="Пауза">Пауза</span> <kbd>F8</kbd></button>
+                <div class="rec-hint" id="cap-hint" data-i18n="Готово к записи.">Готово к записи.</div>
               </div>
             </div>
           </div>
 
           <!-- Быстрые настройки -->
           <div class="quick">
-            <button class="quick-btn" id="strip-autostop" title="Автоматическая остановка записи">
+            <button class="quick-btn" id="strip-autostop" title="Автоматическая остановка записи" data-i18n-title="Автоматическая остановка записи">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3 1.8"/></svg>
-              <span id="strip-autostop-text">Автоматическая остановка (OFF)</span>
+              <span id="strip-autostop-text" data-i18n="Автоматическая остановка (OFF)">Автоматическая остановка (OFF)</span>
             </button>
-            <button class="quick-btn" id="strip-schedule" title="Расписание задач">
+            <button class="quick-btn" id="strip-schedule" title="Расписание задач" data-i18n-title="Расписание задач">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v3M16 3v3"/></svg>
-              <span id="strip-schedule-text">Расписание задач (OFF)</span>
+              <span id="strip-schedule-text" data-i18n="Расписание задач (OFF)">Расписание задач (OFF)</span>
             </button>
-            <button class="quick-btn" id="strip-self" title="Попадает ли окно приложения в запись">
+            <button class="quick-btn" id="strip-self" title="Попадает ли окно приложения в запись" data-i18n-title="Попадает ли окно приложения в запись">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg>
-              <span id="strip-self-text">Своё окно: скрыто</span>
+              <span id="strip-self-text" data-i18n="Своё окно: скрыто">Своё окно: скрыто</span>
             </button>
-            <button class="quick-btn" id="strip-format" title="Формат записи">
+            <button class="quick-btn" id="strip-format" title="Формат записи" data-i18n-title="Формат записи">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5l4.5 2.5-4.5 2.5z"/></svg>
-              <span id="strip-format-text">Формат: как у Chromium</span>
+              <span id="strip-format-text" data-i18n="Формат: как у Chromium">Формат: как у Chromium</span>
             </button>
-            <button class="quick-btn" id="strip-history" title="История записи">
+            <button class="quick-btn" id="strip-history" title="История записи" data-i18n-title="История записи">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-              <span>История записи</span>
+              <span data-i18n="История записи">История записи</span>
             </button>
           </div>
 
@@ -215,19 +215,19 @@
           <section class="recent">
             <div class="recent-head">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3 1.8"/></svg>
-              <h3>Последние записи</h3>
+              <h3 data-i18n="Последние записи">Последние записи</h3>
               <span class="grow"></span>
               <button class="ghost small" id="btn-recent-all">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.2l1.8 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
-                Вся библиотека
+                <span data-i18n="Вся библиотека">Вся библиотека</span>
               </button>
               <button class="ghost small" id="btn-recent-clear">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4.5l5 5-7.2 7.2a2 2 0 0 1-2.8 0l-2.2-2.2a2 2 0 0 1 0-2.8zM9 9l6 6M4 20l3.5-3.5"/></svg>
-                Очистить
+                <span data-i18n="Очистить">Очистить</span>
               </button>
               <button class="ghost small" data-open-dir>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.2l1.8 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
-                Открыть папку
+                <span data-i18n="Открыть папку">Открыть папку</span>
               </button>
             </div>
             <div class="recent-list" id="recent-list"></div>
@@ -237,26 +237,26 @@
         <!-- ─────────────────────────────────────────── библиотека -->
         <section class="view" id="view-library">
           <div class="pane-head">
-            <button class="icon-btn" data-back title="На главную">
+            <button class="icon-btn" data-back title="На главную" data-i18n-title="На главную">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg>
             </button>
-            <h2>История записи</h2>
+            <h2 data-i18n="История записи">История записи</h2>
             <div class="filters" id="library-filters">
-              <button class="chip is-active" data-filter="all">Все</button>
-              <button class="chip" data-filter="video">Видео</button>
-              <button class="chip" data-filter="shot">Снимки</button>
-              <button class="chip" data-filter="audio">Звук</button>
+              <button class="chip is-active" data-filter="all" data-i18n="Все">Все</button>
+              <button class="chip" data-filter="video" data-i18n="Видео">Видео</button>
+              <button class="chip" data-filter="shot" data-i18n="Снимки">Снимки</button>
+              <button class="chip" data-filter="audio" data-i18n="Звук">Звук</button>
             </div>
             <span class="grow"></span>
-            <button id="btn-clear-library" class="ghost small">Очистить</button>
-            <button id="btn-open-dir" class="ghost small" data-open-dir>Открыть папку</button>
+            <button id="btn-clear-library" class="ghost small" data-i18n="Очистить">Очистить</button>
+            <button id="btn-open-dir" class="ghost small" data-open-dir data-i18n="Открыть папку">Открыть папку</button>
           </div>
           <div class="list-bar" id="list-bar" hidden>
-            <span id="list-bar-text">выбрано: 0</span>
+            <span id="list-bar-text" data-i18n="выбрано: 0">выбрано: 0</span>
             <span class="grow"></span>
-            <button class="ghost small" id="btn-merge">Склеить выбранные</button>
-            <button class="ghost small" id="btn-panorama">Панорама</button>
-            <button class="ghost small" id="btn-clear-selection">Снять выбор</button>
+            <button class="ghost small" id="btn-merge" data-i18n="Склеить выбранные">Склеить выбранные</button>
+            <button class="ghost small" id="btn-panorama" data-i18n="Панорама">Панорама</button>
+            <button class="ghost small" id="btn-clear-selection" data-i18n="Снять выбор">Снять выбор</button>
           </div>
           <div class="list" id="library-list"></div>
         </section>
@@ -264,48 +264,48 @@
         <!-- ─────────────────────────────────────────── настройки -->
         <section class="view" id="view-settings">
           <div class="pane-head">
-            <h2>Настройки</h2>
+            <h2 data-i18n="Настройки">Настройки</h2>
             <span class="pane-note" id="settings-note"></span>
           </div>
           <div class="settings">
             <nav class="settings-nav">
-              <button class="snav is-active" data-section="general">Общий</button>
-              <button class="snav" data-section="output">Вывод</button>
-              <button class="snav" data-section="audio">Звук</button>
-              <button class="snav" data-section="pointer">Мышь</button>
-              <button class="snav" data-section="mark">Водяной знак</button>
-              <button class="snav" data-section="schedule">Расписание</button>
-              <button class="snav" data-section="keys">Клавиши</button>
+              <button class="snav is-active" data-section="general" data-i18n="Общий">Общий</button>
+              <button class="snav" data-section="output" data-i18n="Вывод">Вывод</button>
+              <button class="snav" data-section="audio" data-i18n="Звук">Звук</button>
+              <button class="snav" data-section="pointer" data-i18n="Мышь">Мышь</button>
+              <button class="snav" data-section="mark" data-i18n="Водяной знак">Водяной знак</button>
+              <button class="snav" data-section="schedule" data-i18n="Расписание">Расписание</button>
+              <button class="snav" data-section="keys" data-i18n="Клавиши">Клавиши</button>
             </nav>
 
             <div class="settings-body">
               <div class="sect is-active" id="sect-general">
-                <h3 class="sect-title">Общий</h3>
+                <h3 class="sect-title" data-i18n="Общий">Общий</h3>
                 <div class="switches">
-                  <button class="switch" id="sw-sound"><span class="switch-name">Звуковой сигнал перед стартом</span><span class="switch-dot"></span></button>
-                  <button class="switch" id="sw-hideSelf"><span class="switch-name">Не попадать в собственную запись</span><span class="switch-dot"></span></button>
-                  <button class="switch" id="sw-minimize"><span class="switch-name">Сворачивать окно при старте</span><span class="switch-dot"></span></button>
-                  <button class="switch" id="sw-panel"><span class="switch-name">Показывать плавающую панель</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-sound"><span class="switch-name" data-i18n="Звуковой сигнал перед стартом">Звуковой сигнал перед стартом</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-hideSelf"><span class="switch-name" data-i18n="Не попадать в собственную запись">Не попадать в собственную запись</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-minimize"><span class="switch-name" data-i18n="Сворачивать окно при старте">Сворачивать окно при старте</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-panel"><span class="switch-name" data-i18n="Показывать плавающую панель">Показывать плавающую панель</span><span class="switch-dot"></span></button>
                 </div>
                 <label class="field">
-                  <span>Стиль панели записи</span>
+                  <span data-i18n="Стиль панели записи">Стиль панели записи</span>
                   <select id="sel-panelStyle">
-                    <option value="full">Полная панель</option>
-                    <option value="ball">Плавающий шар</option>
+                    <option value="full" data-i18n="Полная панель">Полная панель</option>
+                    <option value="ball" data-i18n="Плавающий шар">Плавающий шар</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Автоматическая остановка</span>
+                  <span data-i18n="Автоматическая остановка">Автоматическая остановка</span>
                   <select id="sel-autostop">
-                    <option value="0">выключена</option>
-                    <option value="1">через 1 мин</option>
-                    <option value="5">через 5 мин</option>
-                    <option value="10">через 10 мин</option>
-                    <option value="30">через 30 мин</option>
+                    <option value="0" data-i18n="выключена">выключена</option>
+                    <option value="1" data-i18n="через 1 мин">через 1 мин</option>
+                    <option value="5" data-i18n="через 5 мин">через 5 мин</option>
+                    <option value="10" data-i18n="через 10 мин">через 10 мин</option>
+                    <option value="30" data-i18n="через 30 мин">через 30 мин</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Кадры в секунду</span>
+                  <span data-i18n="Кадры в секунду">Кадры в секунду</span>
                   <select id="sel-fps">
                     <option value="15">15</option>
                     <option value="24">24</option>
@@ -314,50 +314,58 @@
                   </select>
                 </label>
                 <label class="field">
-                  <span>Качество записи</span>
+                  <span data-i18n="Качество записи">Качество записи</span>
                   <select id="sel-quality">
-                    <option value="low">компактнее</option>
-                    <option value="balanced">средне</option>
-                    <option value="high">максимум</option>
+                    <option value="low" data-i18n="компактнее">компактнее</option>
+                    <option value="balanced" data-i18n="средне">средне</option>
+                    <option value="high" data-i18n="максимум">максимум</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Отсчёт перед стартом</span>
+                  <span data-i18n="Отсчёт перед стартом">Отсчёт перед стартом</span>
                   <select id="sel-countdown">
-                    <option value="0">выключен</option>
-                    <option value="3">3 секунды</option>
-                    <option value="5">5 секунд</option>
+                    <option value="0" data-i18n="выключен">выключен</option>
+                    <option value="3" data-i18n="3 секунды">3 секунды</option>
+                    <option value="5" data-i18n="5 секунд">5 секунд</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span data-i18n="Язык интерфейса">Язык интерфейса</span>
+                  <select id="sel-language">
+                    <option value="auto" data-i18n="Как в системе">Как в системе</option>
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
                   </select>
                 </label>
               </div>
 
               <div class="sect" id="sect-output">
-                <h3 class="sect-title">Вывод</h3>
+                <h3 class="sect-title" data-i18n="Вывод">Вывод</h3>
                 <label class="field">
-                  <span>Формат видео</span>
+                  <span data-i18n="Формат видео">Формат видео</span>
                   <select id="sel-container">
-                    <option value="auto">Как пишет Chromium</option>
+                    <option value="auto" data-i18n="Как пишет Chromium">Как пишет Chromium</option>
                     <option value="mp4">MP4 (H.264 + AAC)</option>
                     <option value="mov">MOV</option>
                     <option value="mkv">MKV</option>
                     <option value="wmv">WMV</option>
                     <option value="webm">WebM (VP9 + Opus)</option>
-                    <option value="gif">GIF (анимация)</option>
+                    <option value="gif" data-i18n="GIF (анимация)">GIF (анимация)</option>
                     <option value="f4v">F4V</option>
                     <option value="ts">MPEG-TS</option>
                     <option value="gif">GIF (15 fps)</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Видео кодек</span>
+                  <span data-i18n="Видео кодек">Видео кодек</span>
                   <select id="sel-videocodec"></select>
                 </label>
                 <label class="field">
-                  <span>Кодек звука</span>
+                  <span data-i18n="Кодек звука">Кодек звука</span>
                   <select id="sel-audiocodec"></select>
                 </label>
                 <label class="field">
-                  <span>Формат скриншота</span>
+                  <span data-i18n="Формат скриншота">Формат скриншота</span>
                   <select id="sel-shotformat">
                     <option value="png">PNG</option>
                     <option value="jpg">JPEG</option>
@@ -368,172 +376,172 @@
                 </label>
                 <div class="dir-row">
                   <div>
-                    <div class="dir-label">Записи экрана</div>
+                    <div class="dir-label" data-i18n="Записи экрана">Записи экрана</div>
                     <div class="dir-path mono" id="dir-video">—</div>
                   </div>
-                  <button class="ghost small" id="btn-dir-video">Изменить</button>
+                  <button class="ghost small" id="btn-dir-video" data-i18n="Изменить">Изменить</button>
                 </div>
                 <div class="dir-row">
                   <div>
-                    <div class="dir-label">Скриншоты</div>
+                    <div class="dir-label" data-i18n="Скриншоты">Скриншоты</div>
                     <div class="dir-path mono" id="dir-shots">—</div>
                   </div>
-                  <button class="ghost small" id="btn-dir-shots">Изменить</button>
+                  <button class="ghost small" id="btn-dir-shots" data-i18n="Изменить">Изменить</button>
                 </div>
                 <label class="field">
-                  <span>Интервал ключевого кадра</span>
+                  <span data-i18n="Интервал ключевого кадра">Интервал ключевого кадра</span>
                   <select id="sel-keyframe">
-                    <option value="1">1 с</option>
-                    <option value="2">2 с</option>
-                    <option value="5">5 с</option>
-                    <option value="10">10 с</option>
+                    <option value="1" data-i18n="1 с">1 с</option>
+                    <option value="2" data-i18n="2 с">2 с</option>
+                    <option value="5" data-i18n="5 с">5 с</option>
+                    <option value="10" data-i18n="10 с">10 с</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Качество звука</span>
+                  <span data-i18n="Качество звука">Качество звука</span>
                   <select id="sel-audioquality">
-                    <option value="96">96 кбит/с</option>
-                    <option value="128">128 кбит/с</option>
-                    <option value="192">192 кбит/с</option>
-                    <option value="256">256 кбит/с</option>
-                    <option value="320">320 кбит/с</option>
+                    <option value="96" data-i18n="96 кбит/с">96 кбит/с</option>
+                    <option value="128" data-i18n="128 кбит/с">128 кбит/с</option>
+                    <option value="192" data-i18n="192 кбит/с">192 кбит/с</option>
+                    <option value="256" data-i18n="256 кбит/с">256 кбит/с</option>
+                    <option value="320" data-i18n="320 кбит/с">320 кбит/с</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Частота дискретизации</span>
+                  <span data-i18n="Частота дискретизации">Частота дискретизации</span>
                   <select id="sel-samplerate">
-                    <option value="0">авто</option>
-                    <option value="44100">44100 Гц</option>
-                    <option value="48000">48000 Гц</option>
+                    <option value="0" data-i18n="авто">авто</option>
+                    <option value="44100" data-i18n="44100 Гц">44100 Гц</option>
+                    <option value="48000" data-i18n="48000 Гц">48000 Гц</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Каналы</span>
+                  <span data-i18n="Каналы">Каналы</span>
                   <select id="sel-channels">
-                    <option value="0">авто</option>
-                    <option value="1">моно</option>
-                    <option value="2">стерео</option>
+                    <option value="0" data-i18n="авто">авто</option>
+                    <option value="1" data-i18n="моно">моно</option>
+                    <option value="2" data-i18n="стерео">стерео</option>
                   </select>
                 </label>
                 <p class="sect-note" id="codec-note"></p>
               </div>
 
               <div class="sect" id="sect-audio">
-                <h3 class="sect-title">Звук</h3>
-                <p class="sect-note">
+                <h3 class="sect-title" data-i18n="Звук">Звук</h3>
+                <p class="sect-note" data-i18n="Переключатели микрофона и системного звука — на главном экране, чтобы включать их перед записью. Системный звук идёт loopback-дорожкой Chromium: для всего экрана — в той же сессии захвата, для окна — отдельной сессией «экран + звук», которая в запись видео не идёт.">
                   Переключатели микрофона и системного звука — на главном экране, чтобы включать их перед записью.
                   Системный звук идёт loopback-дорожкой Chromium: для всего экрана — в той же сессии захвата,
                   для окна — отдельной сессией «экран + звук», которая в запись видео не идёт.
                 </p>
                 <label class="field">
-                  <span>Формат аудиозаписи</span>
+                  <span data-i18n="Формат аудиозаписи">Формат аудиозаписи</span>
                   <select id="sel-audioformat">
                     <option value="mp3">MP3</option>
                     <option value="m4a">M4A (AAC)</option>
                     <option value="wma">WMA</option>
                     <option value="aac">AAC (ADTS)</option>
                     <option value="opus">OPUS</option>
-                    <option value="flac">FLAC (без потерь)</option>
-                    <option value="wav">WAV (без потерь)</option>
+                    <option value="flac" data-i18n="FLAC (без потерь)">FLAC (без потерь)</option>
+                    <option value="wav" data-i18n="WAV (без потерь)">WAV (без потерь)</option>
                   </select>
                 </label>
-                <p class="sect-note">Применяется в режиме «Только звук»: пишется WebM/Opus-промежуток, ffmpeg переводит его в выбранный формат.</p>
+                <p class="sect-note" data-i18n="Применяется в режиме «Только звук»: пишется WebM/Opus-промежуток, ffmpeg переводит его в выбранный формат.">Применяется в режиме «Только звук»: пишется WebM/Opus-промежуток, ffmpeg переводит его в выбранный формат.</p>
                 <label class="field">
-                  <span>Аудиовход (интерфейс, микрофон)</span>
+                  <span data-i18n="Аудиовход (интерфейс, микрофон)">Аудиовход (интерфейс, микрофон)</span>
                   <select id="sel-micdevice"></select>
                 </label>
                 <label class="field">
-                  <span>Аудиовыход (только справка)</span>
+                  <span data-i18n="Аудиовыход (только справка)">Аудиовыход (только справка)</span>
                   <select id="sel-outdevice"></select>
                 </label>
                 <p class="sect-note">
-                  Вход применяется к микрофону. Выход ни на что не влияет: записать с выхода нельзя.
-                  Откуда брать <b>звук компьютера</b> (в том числе из DAW), выбирается на главном экране —
-                  в карточке «Система»: «Звук Windows» или любой аудиовход, на который направлен звук.
+                  <span data-i18n="Вход применяется к микрофону. Выход ни на что не влияет: записать с выхода нельзя.">Вход применяется к микрофону. Выход ни на что не влияет: записать с выхода нельзя.</span>
+                  <span data-i18n="Откуда брать">Откуда брать</span> <b data-i18n="звук компьютера">звук компьютера</b> <span data-i18n="(в том числе из DAW), выбирается на главном экране — в карточке «Система»: «Звук Windows» или любой аудиовход, на который направлен звук.">(в том числе из DAW), выбирается на главном экране —
+                  в карточке «Система»: «Звук Windows» или любой аудиовход, на который направлен звук.</span>
                 </p>
-                <h3 class="sect-title">Баланс звука в видео</h3>
-                <p class="sect-note">
+                <h3 class="sect-title" data-i18n="Баланс звука в видео">Баланс звука в видео</h3>
+                <p class="sect-note" data-i18n="Когда микрофон и звук компьютера пишутся вместе, они смешиваются в одну дорожку. Подберите громкость так, чтобы голос был слышен поверх игры или видео. Ползунки работают и во время записи.">
                   Когда микрофон и звук компьютера пишутся вместе, они смешиваются в одну дорожку.
                   Подберите громкость так, чтобы голос был слышен поверх игры или видео. Ползунки
                   работают и во время записи.
                 </p>
                 <label class="field range-field">
-                  <span>Микрофон (голос)</span>
+                  <span data-i18n="Микрофон (голос)">Микрофон (голос)</span>
                   <span class="range-wrap">
                     <input type="range" id="rng-micvol" min="0" max="200" step="5" value="100" />
                     <output id="out-micvol" class="mono">100%</output>
                   </span>
                 </label>
                 <label class="field range-field">
-                  <span>Звук компьютера</span>
+                  <span data-i18n="Звук компьютера">Звук компьютера</span>
                   <span class="range-wrap">
                     <input type="range" id="rng-sysvol" min="0" max="150" step="5" value="100" />
                     <output id="out-sysvol" class="mono">100%</output>
                   </span>
                 </label>
                 <div class="switches">
-                  <button class="switch" id="sw-miccleanup"><span class="switch-name">Очистка голоса: эхо, шум, автоусиление</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-miccleanup"><span class="switch-name" data-i18n="Очистка голоса: эхо, шум, автоусиление">Очистка голоса: эхо, шум, автоусиление</span><span class="switch-dot"></span></button>
                 </div>
-                <p class="sect-note">
+                <p class="sect-note" data-i18n="Если звук колонок слышен в микрофоне дважды или голос «плавает» по громкости — оставьте очистку включённой. Лучше всего писать в наушниках: тогда колонки не попадают в микрофон вовсе.">
                   Если звук колонок слышен в микрофоне дважды или голос «плавает» по громкости — оставьте очистку
                   включённой. Лучше всего писать в наушниках: тогда колонки не попадают в микрофон вовсе.
                 </p>
-                <div class="info-line"><span>Микрофон</span><b id="audio-mic">выкл</b></div>
-                <div class="info-line"><span>Системный звук</span><b id="audio-system">выкл</b></div>
-                <div class="info-line"><span>Кодек звука в видео</span><b>AAC 44.1 кГц, стерео</b></div>
+                <div class="info-line"><span data-i18n="Микрофон">Микрофон</span><b id="audio-mic" data-i18n="выкл">выкл</b></div>
+                <div class="info-line"><span data-i18n="Системный звук">Системный звук</span><b id="audio-system" data-i18n="выкл">выкл</b></div>
+                <div class="info-line"><span data-i18n="Кодек звука в видео">Кодек звука в видео</span><b data-i18n="AAC 44.1 кГц, стерео">AAC 44.1 кГц, стерео</b></div>
               </div>
 
               <div class="sect" id="sect-pointer">
-                <h3 class="sect-title">Мышь</h3>
+                <h3 class="sect-title" data-i18n="Мышь">Мышь</h3>
                 <div class="switches">
-                  <button class="switch" id="sw-cursor"><span class="switch-name">Подсвечивать курсор в записи</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-cursor"><span class="switch-name" data-i18n="Подсвечивать курсор в записи">Подсвечивать курсор в записи</span><span class="switch-dot"></span></button>
                 </div>
-                <p class="sect-note">
+                <p class="sect-note" data-i18n="Курсор рисуется кольцом поверх кадра; позиция берётся из системы 25 раз в секунду. Клики и нажатия клавиш не подсвечиваются: для этого нужен глобальный хук ввода, которого нет в Chromium.">
                   Курсор рисуется кольцом поверх кадра; позиция берётся из системы 25 раз в секунду.
                   Клики и нажатия клавиш не подсвечиваются: для этого нужен глобальный хук ввода, которого нет в Chromium.
                 </p>
               </div>
 
               <div class="sect" id="sect-mark">
-                <h3 class="sect-title">Водяной знак</h3>
-                <p class="sect-note">
+                <h3 class="sect-title" data-i18n="Водяной знак">Водяной знак</h3>
+                <p class="sect-note" data-i18n="Накладывается при сохранении записи: значок впечатывается в кадр через ffmpeg, поэтому запись перекодируется даже при контейнере «как у Chromium». На GIF и на режим «только звук» не накладывается.">
                   Накладывается при сохранении записи: значок впечатывается в кадр через ffmpeg, поэтому
                   запись перекодируется даже при контейнере «как у Chromium». На GIF и на режим «только звук»
                   не накладывается.
                 </p>
                 <div class="switches">
-                  <button class="switch" id="sw-watermark"><span class="switch-name">Накладывать водяной знак</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-watermark"><span class="switch-name" data-i18n="Накладывать водяной знак">Накладывать водяной знак</span><span class="switch-dot"></span></button>
                 </div>
                 <div class="wm-preview" id="wm-preview">
-                  <span id="wm-preview-text">водяной знак</span>
+                  <span id="wm-preview-text" data-i18n="водяной знак">водяной знак</span>
                 </div>
-                <p class="sect-note">
+                <p class="sect-note" data-i18n="Превью схематичное: показывает положение, размер и прозрачность. Точная вёрстка — в готовом файле.">
                   Превью схематичное: показывает положение, размер и прозрачность. Точная вёрстка — в готовом файле.
                 </p>
                 <label class="field">
-                  <span>Текст</span>
-                  <input type="text" id="inp-wm-text" class="text-input" maxlength="120" placeholder="например, Screen Revesane" />
+                  <span data-i18n="Текст">Текст</span>
+                  <input type="text" id="inp-wm-text" class="text-input" maxlength="120" placeholder="например, Screen Revesane" data-i18n-placeholder="например, Screen Revesane" />
                 </label>
                 <div class="field">
-                  <span>Или PNG</span>
+                  <span data-i18n="Или PNG">Или PNG</span>
                   <span class="wm-picker">
-                    <span class="wm-file mono" id="wm-image-label">не выбрана</span>
-                    <button class="ghost small" id="btn-wm-image">Выбрать…</button>
+                    <span class="wm-file mono" id="wm-image-label" data-i18n="не выбрана">не выбрана</span>
+                    <button class="ghost small" id="btn-wm-image" data-i18n="Выбрать…">Выбрать…</button>
                     <button class="ghost small" id="btn-wm-image-clear">×</button>
                   </span>
                 </div>
                 <label class="field">
-                  <span>Положение</span>
+                  <span data-i18n="Положение">Положение</span>
                   <select id="sel-wm-position">
-                    <option value="top-left">слева сверху</option>
-                    <option value="top-right">справа сверху</option>
-                    <option value="bottom-left">слева снизу</option>
-                    <option value="bottom-right" selected>справа снизу</option>
-                    <option value="center">по центру</option>
+                    <option value="top-left" data-i18n="слева сверху">слева сверху</option>
+                    <option value="top-right" data-i18n="справа сверху">справа сверху</option>
+                    <option value="bottom-left" data-i18n="слева снизу">слева снизу</option>
+                    <option value="bottom-right" selected data-i18n="справа снизу">справа снизу</option>
+                    <option value="center" data-i18n="по центру">по центру</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span>Размер (высота текста или ширина PNG)</span>
+                  <span data-i18n="Размер (высота текста или ширина PNG)">Размер (высота текста или ширина PNG)</span>
                   <select id="sel-wm-size">
                     <option value="16">16 px</option>
                     <option value="24">24 px</option>
@@ -544,7 +552,7 @@
                   </select>
                 </label>
                 <label class="field">
-                  <span>Непрозрачность</span>
+                  <span data-i18n="Непрозрачность">Непрозрачность</span>
                   <select id="sel-wm-opacity">
                     <option value="0.3">30 %</option>
                     <option value="0.5">50 %</option>
@@ -554,7 +562,7 @@
                   </select>
                 </label>
                 <label class="field">
-                  <span>Отступ от края</span>
+                  <span data-i18n="Отступ от края">Отступ от края</span>
                   <select id="sel-wm-margin">
                     <option value="0">0 px</option>
                     <option value="12">12 px</option>
@@ -563,117 +571,117 @@
                   </select>
                 </label>
                 <div class="switches">
-                  <button class="switch" id="sw-wm-shadow"><span class="switch-name">Тень у текста</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-wm-shadow"><span class="switch-name" data-i18n="Тень у текста">Тень у текста</span><span class="switch-dot"></span></button>
                 </div>
               </div>
 
               <div class="sect" id="sect-schedule">
-                <h3 class="sect-title">Расписание</h3>
-                <p class="sect-note">
+                <h3 class="sect-title" data-i18n="Расписание">Расписание</h3>
+                <p class="sect-note" data-i18n="Запись стартует сама — через выбранное время или в конкретный час — и останавливается по длительности. Работает по текущим режиму и параметрам захвата.">
                   Запись стартует сама — через выбранное время или в конкретный час — и останавливается
                   по длительности. Работает по текущим режиму и параметрам захвата.
                 </p>
                 <label class="field">
-                  <span>Когда начать</span>
+                  <span data-i18n="Когда начать">Когда начать</span>
                   <select id="sel-schemode">
-                    <option value="delay">через N минут</option>
-                    <option value="clock">в точное время</option>
+                    <option value="delay" data-i18n="через N минут">через N минут</option>
+                    <option value="clock" data-i18n="в точное время">в точное время</option>
                   </select>
                 </label>
                 <label class="field" id="field-schedelay">
-                  <span>Начать через</span>
+                  <span data-i18n="Начать через">Начать через</span>
                   <select id="sel-schedelay">
-                    <option value="0">не планировать</option>
-                    <option value="1">1 минуту</option>
-                    <option value="5">5 минут</option>
-                    <option value="15">15 минут</option>
-                    <option value="30">30 минут</option>
-                    <option value="60">1 час</option>
+                    <option value="0" data-i18n="не планировать">не планировать</option>
+                    <option value="1" data-i18n="1 минуту">1 минуту</option>
+                    <option value="5" data-i18n="5 минут">5 минут</option>
+                    <option value="15" data-i18n="15 минут">15 минут</option>
+                    <option value="30" data-i18n="30 минут">30 минут</option>
+                    <option value="60" data-i18n="1 час">1 час</option>
                   </select>
                 </label>
                 <label class="field" id="field-scheclock" hidden>
-                  <span>Час старта</span>
+                  <span data-i18n="Час старта">Час старта</span>
                   <input type="time" id="inp-scheclock" value="09:00" step="60" />
                 </label>
                 <label class="field">
-                  <span>Писать</span>
+                  <span data-i18n="Писать">Писать</span>
                   <select id="sel-scheduration">
-                    <option value="0">до ручной остановки</option>
-                    <option value="1">1 минуту</option>
-                    <option value="5">5 минут</option>
-                    <option value="10">10 минут</option>
-                    <option value="30">30 минут</option>
+                    <option value="0" data-i18n="до ручной остановки">до ручной остановки</option>
+                    <option value="1" data-i18n="1 минуту">1 минуту</option>
+                    <option value="5" data-i18n="5 минут">5 минут</option>
+                    <option value="10" data-i18n="10 минут">10 минут</option>
+                    <option value="30" data-i18n="30 минут">30 минут</option>
                   </select>
                 </label>
                 <div class="row-actions">
-                  <button class="ghost small" id="btn-schedule-arm">Запустить по расписанию</button>
-                  <button class="ghost small" id="btn-schedule-cancel">Отменить</button>
+                  <button class="ghost small" id="btn-schedule-arm" data-i18n="Запустить по расписанию">Запустить по расписанию</button>
+                  <button class="ghost small" id="btn-schedule-cancel" data-i18n="Отменить">Отменить</button>
                 </div>
-                <div class="info-line"><span>Старт</span><b id="schedule-at">—</b></div>
-                <div class="info-line"><span>Состояние</span><b id="schedule-state">не запланировано</b></div>
-                <p class="sect-note" id="schedule-note">
+                <div class="info-line"><span data-i18n="Старт">Старт</span><b id="schedule-at">—</b></div>
+                <div class="info-line"><span data-i18n="Состояние">Состояние</span><b id="schedule-state" data-i18n="не запланировано">не запланировано</b></div>
+                <p class="sect-note" id="schedule-note" data-i18n="В режиме «в точное время» прошедший час означает ближайшие сутки: если 09:00 уже было, запись начнётся завтра в 09:00.">
                   В режиме «в точное время» прошедший час означает ближайшие сутки: если 09:00 уже было,
                   запись начнётся завтра в 09:00.
                 </p>
               </div>
 
               <div class="sect" id="sect-keys">
-                <h3 class="sect-title">Горячие клавиши</h3>
+                <h3 class="sect-title" data-i18n="Горячие клавиши">Горячие клавиши</h3>
                 <p class="sect-note">
-                  Нажмите на поле и введите сочетание — оно назначится сразу. <b>Esc</b> отменяет ввод,
+                  <span data-i18n="Нажмите на поле и введите сочетание — оно назначится сразу.">Нажмите на поле и введите сочетание — оно назначится сразу.</span> <b>Esc</b> <span data-i18n="отменяет ввод, крестик очищает клавишу. Одиночные буквы и цифры не принимаются: нужен F-ряд или модификатор (Ctrl, Alt, Shift, Win). Перед сохранением сочетание проверяется: занятое другой программой или уже выданное другому действию не запишется.">отменяет ввод,
                   крестик очищает клавишу. Одиночные буквы и цифры не принимаются: нужен F-ряд или модификатор
                   (Ctrl, Alt, Shift, Win). Перед сохранением сочетание проверяется: занятое другой программой
-                  или уже выданное другому действию не запишется.
+                  или уже выданное другому действию не запишется.</span>
                 </p>
                 <div class="hk-list">
                   <div class="hk-row">
-                    <span class="hk-label">Начать / остановить запись</span>
+                    <span class="hk-label" data-i18n="Начать / остановить запись">Начать / остановить запись</span>
                     <button class="hk" data-hk="toggle">—</button>
-                    <button class="hk-clear" data-hk-clear="toggle" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="toggle" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Только остановить</span>
+                    <span class="hk-label" data-i18n="Только остановить">Только остановить</span>
                     <button class="hk" data-hk="stop">—</button>
-                    <button class="hk-clear" data-hk-clear="stop" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="stop" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Пауза / продолжить</span>
+                    <span class="hk-label" data-i18n="Пауза / продолжить">Пауза / продолжить</span>
                     <button class="hk" data-hk="pause">—</button>
-                    <button class="hk-clear" data-hk-clear="pause" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="pause" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Скриншот</span>
+                    <span class="hk-label" data-i18n="Скриншот">Скриншот</span>
                     <button class="hk" data-hk="screenshot">—</button>
-                    <button class="hk-clear" data-hk-clear="screenshot" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="screenshot" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Выделить и записать видео</span>
+                    <span class="hk-label" data-i18n="Выделить и записать видео">Выделить и записать видео</span>
                     <button class="hk" data-hk="region">—</button>
-                    <button class="hk-clear" data-hk-clear="region" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="region" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Снимок области (сразу редактор)</span>
+                    <span class="hk-label" data-i18n="Снимок области (сразу редактор)">Снимок области (сразу редактор)</span>
                     <button class="hk" data-hk="regionShot">—</button>
-                    <button class="hk-clear" data-hk-clear="regionShot" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="regionShot" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Открыть библиотеку</span>
+                    <span class="hk-label" data-i18n="Открыть библиотеку">Открыть библиотеку</span>
                     <button class="hk" data-hk="library">—</button>
-                    <button class="hk-clear" data-hk-clear="library" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="library" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Микрофон вкл / выкл</span>
+                    <span class="hk-label" data-i18n="Микрофон вкл / выкл">Микрофон вкл / выкл</span>
                     <button class="hk" data-hk="mic">—</button>
-                    <button class="hk-clear" data-hk-clear="mic" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="mic" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                   <div class="hk-row">
-                    <span class="hk-label">Плавающая панель вкл / выкл</span>
+                    <span class="hk-label" data-i18n="Плавающая панель вкл / выкл">Плавающая панель вкл / выкл</span>
                     <button class="hk" data-hk="panel">—</button>
-                    <button class="hk-clear" data-hk-clear="panel" title="Очистить">×</button>
+                    <button class="hk-clear" data-hk-clear="panel" title="Очистить" data-i18n-title="Очистить">×</button>
                   </div>
                 </div>
                 <div class="row-actions">
-                  <button class="ghost small" id="btn-key-reset">Сбросить на F9 / F8 / F10 / F7 / F6</button>
+                  <button class="ghost small" id="btn-key-reset" data-i18n="Сбросить на F9 / F8 / F10 / F7 / F6">Сбросить на F9 / F8 / F10 / F7 / F6</button>
                 </div>
               </div>
             </div>
@@ -683,70 +691,70 @@
         <!-- ─────────────────────────────────────────── о программе -->
         <section class="view" id="view-about">
           <div class="pane-head">
-            <h2>О программе</h2>
+            <h2 data-i18n="О программе">О программе</h2>
           </div>
           <div class="doc">
             <h3>Screen Revesane</h3>
-            <p>
+            <p data-i18n="Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает выбранный контейнер и формат. Ничего не уходит в сеть — все файлы остаются на этом компьютере.">
               Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает
               выбранный контейнер и формат. Ничего не уходит в сеть — все файлы остаются на этом компьютере.
             </p>
-            <div class="info-line"><span>Сборка</span><b id="about-version">—</b></div>
-            <div class="info-line"><span>Интерфейс собран</span><b class="mono" id="about-build">—</b></div>
-            <div class="info-line"><span>Папка приложения</span><b class="mono" id="about-path">—</b></div>
+            <div class="info-line"><span data-i18n="Сборка">Сборка</span><b id="about-version">—</b></div>
+            <div class="info-line"><span data-i18n="Интерфейс собран">Интерфейс собран</span><b class="mono" id="about-build">—</b></div>
+            <div class="info-line"><span data-i18n="Папка приложения">Папка приложения</span><b class="mono" id="about-path">—</b></div>
             <div class="info-line"><span>Electron / Chromium / Node</span><b class="mono" id="about-runtime">—</b></div>
             <div class="info-line"><span>ffmpeg</span><b id="about-ffmpeg">—</b></div>
-            <div class="info-line"><span>Файл настроек</span><b class="mono" id="about-settings">—</b></div>
-            <div class="info-line"><span>Файл лога</span><b class="mono" id="about-log">—</b></div>
-            <div class="info-line"><span>Минидампы падений</span><b class="mono" id="about-crashdumps">—</b></div>
+            <div class="info-line"><span data-i18n="Файл настроек">Файл настроек</span><b class="mono" id="about-settings">—</b></div>
+            <div class="info-line"><span data-i18n="Файл лога">Файл лога</span><b class="mono" id="about-log">—</b></div>
+            <div class="info-line"><span data-i18n="Минидампы падений">Минидампы падений</span><b class="mono" id="about-crashdumps">—</b></div>
             <div class="row-actions">
-              <button id="btn-open-out" class="ghost small">Открыть папку записей</button>
-              <button id="btn-open-log" class="ghost small">Открыть папку логов</button>
-              <button id="btn-copy-log" class="ghost small">Скопировать строки лога</button>
+              <button id="btn-open-out" class="ghost small" data-i18n="Открыть папку записей">Открыть папку записей</button>
+              <button id="btn-open-log" class="ghost small" data-i18n="Открыть папку логов">Открыть папку логов</button>
+              <button id="btn-copy-log" class="ghost small" data-i18n="Скопировать строки лога">Скопировать строки лога</button>
             </div>
             <div class="doc-sep"></div>
             <p>
-              В лог пишется всё, что делает приложение: старт и конец записи, перекод, предпросмотр, ошибки
-              с кодом (<code>SR1001</code>…<code>SR5001</code>). Формат строки
-              <code>ЧЧ:ММ:СС.мс [LVL][модуль] текст</code>, файл на сутки, хранится 7 дней.
+              <span data-i18n="В лог пишется всё, что делает приложение: старт и конец записи, перекод, предпросмотр, ошибки с кодом (">В лог пишется всё, что делает приложение: старт и конец записи, перекод, предпросмотр, ошибки
+              с кодом (</span><code>SR1001</code>…<code>SR5001</code><span data-i18n="). Формат строки">). Формат строки</span>
+              <code data-i18n="ЧЧ:ММ:СС.мс [LVL][модуль] текст">ЧЧ:ММ:СС.мс [LVL][модуль] текст</code><span data-i18n=", файл на сутки, хранится 7 дней.">, файл на сутки, хранится 7 дней.</span>
             </p>          </div>
         </section>
 
         <!-- ─────────────────────────────────────────── помощь -->
         <section class="view" id="view-help">
           <div class="pane-head">
-            <h2>Помощь</h2>
-            <span class="pane-note">Клавиши и пути подставляются из текущих настроек</span>
+            <h2 data-i18n="Помощь">Помощь</h2>
+            <span class="pane-note" data-i18n="Клавиши и пути подставляются из текущих настроек">Клавиши и пути подставляются из текущих настроек</span>
           </div>
           <div class="doc">
-            <h3>Как записать</h3>
-            <p>
+            <h3 data-i18n="Как записать">Как записать</h3>
+            <p data-i18n="Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок — и нажмите круглую кнопку. Пока идёт запись, кнопка останавливает её, рядом доступна пауза. Пока приложение записывает, его собственное окно можно исключить из кадра (настройки → «Общий»).">
               Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок —
               и нажмите круглую кнопку. Пока идёт запись, кнопка останавливает её, рядом доступна пауза.
               Пока приложение записывает, его собственное окно можно исключить из кадра (настройки → «Общий»).
             </p>
             <div class="doc-sep"></div>
-            <h3>Горячие клавиши</h3>
-            <p>Текущие назначения. Изменить их можно в настройках, раздел «Клавиши».</p>
+            <h3 data-i18n="Горячие клавиши">Горячие клавиши</h3>
+            <p data-i18n="Текущие назначения. Изменить их можно в настройках, раздел «Клавиши».">Текущие назначения. Изменить их можно в настройках, раздел «Клавиши».</p>
             <div class="help-grid" id="help-hotkeys"></div>
             <div class="doc-sep"></div>
-            <h3>Куда сохраняется</h3>
-            <div class="info-line"><span>Записи экрана</span><b class="mono" id="help-dir-video">—</b></div>
-            <div class="info-line"><span>Скриншоты</span><b class="mono" id="help-dir-shots">—</b></div>
-            <div class="info-line"><span>Журнал</span><b class="mono" id="help-log">—</b></div>
+            <h3 data-i18n="Куда сохраняется">Куда сохраняется</h3>
+            <div class="info-line"><span data-i18n="Записи экрана">Записи экрана</span><b class="mono" id="help-dir-video">—</b></div>
+            <div class="info-line"><span data-i18n="Скриншоты">Скриншоты</span><b class="mono" id="help-dir-shots">—</b></div>
+            <div class="info-line"><span data-i18n="Журнал">Журнал</span><b class="mono" id="help-log">—</b></div>
             <div class="doc-sep"></div>
-            <h3>Форматы</h3>
-            <p>
+            <h3 data-i18n="Форматы">Форматы</h3>
+            <p data-i18n="Видео: MP4, MOV, MKV, WMV, WebM, F4V, MPEG-TS, GIF. Кодеки: H.264, HEVC, MPEG-4, ProRes, VP9, VP8, WMV2. Скриншоты: PNG, JPEG, BMP, GIF, TIFF. Только звук: MP3, M4A, WMA, AAC, OPUS, FLAC, WAV.">
               Видео: MP4, MOV, MKV, WMV, WebM, F4V, MPEG-TS, GIF. Кодеки: H.264, HEVC, MPEG-4, ProRes, VP9,
               VP8, WMV2. Скриншоты: PNG, JPEG, BMP, GIF, TIFF. Только звук: MP3, M4A, WMA, AAC, OPUS, FLAC, WAV.
             </p>
             <div class="doc-sep"></div>
-            <h3>Если запись не сохранилась</h3>
+            <h3 data-i18n="Если запись не сохранилась">Если запись не сохранилась</h3>
             <p>
-              Код ошибки в тосте и в логе указывает причину: <code>SR1001</code>…<code>SR1004</code> — запись,
-              <code>SR2001</code>…<code>SR2003</code> — файл и перекод, <code>SR3001</code> — предпросмотр,
-              <code>SR4001</code> — снимок, <code>SR5001</code> — ffmpeg. Недописанный файл лежит с суффиксом
-              <code>.part</code> и чинится при следующем запуске.
+              <span data-i18n="Код ошибки в тосте и в логе указывает причину:">Код ошибки в тосте и в логе указывает причину:</span> <code>SR1001</code>…<code>SR1004</code> <span data-i18n="— запись,">— запись,</span>
+              <code>SR2001</code>…<code>SR2003</code> <span data-i18n="— файл и перекод,">— файл и перекод,</span> <code>SR3001</code> <span data-i18n="— предпросмотр,">— предпросмотр,</span>
+              <code>SR4001</code> <span data-i18n="— снимок,">— снимок,</span> <code>SR5001</code> <span data-i18n="— ffmpeg. Недописанный файл лежит с суффиксом">— ffmpeg. Недописанный файл лежит с суффиксом</span>
+              <code>.part</code> <span data-i18n="и чинится при следующем запуске.">и чинится при следующем запуске.</span>
             </p>
           </div>
         </section>
@@ -756,39 +764,39 @@
           <div class="mini-head">
             <span class="mini-dot" id="mini-dot"></span>
             <span class="mini-timer" id="mini-timer">00:00</span>
-            <span class="mini-meta" id="mini-meta">готов</span>
+            <span class="mini-meta" id="mini-meta" data-i18n="готов">готов</span>
             <span class="grow"></span>
-            <button class="win-btn" id="mini-expand" title="Обычное окно" aria-label="Обычное окно">&#10530;</button>
-            <button class="win-btn win-btn-close" id="mini-close" title="Закрыть" aria-label="Закрыть">&#215;</button>
+            <button class="win-btn" id="mini-expand" title="Обычное окно" aria-label="Обычное окно" data-i18n-title="Обычное окно" data-i18n-aria-label="Обычное окно">&#10530;</button>
+            <button class="win-btn win-btn-close" id="mini-close" title="Закрыть" aria-label="Закрыть" data-i18n-title="Закрыть" data-i18n-aria-label="Закрыть">&#215;</button>
           </div>
 
           <div class="mini-main">
-            <button class="mini-rec" id="mini-primary"><span id="mini-primary-label">Записать</span></button>
+            <button class="mini-rec" id="mini-primary"><span id="mini-primary-label" data-i18n="Записать">Записать</span></button>
             <div class="mini-actions">
-              <button class="mini-act" id="mini-pause" title="Пауза">&#10074;&#10074;</button>
-              <button class="mini-act" id="mini-stop" title="Стоп">&#9632;</button>
+              <button class="mini-act" id="mini-pause" title="Пауза" data-i18n-title="Пауза">&#10074;&#10074;</button>
+              <button class="mini-act" id="mini-stop" title="Стоп" data-i18n-title="Стоп">&#9632;</button>
             </div>
           </div>
 
           <div class="mini-row">
-            <span class="mini-key">Режим</span>
-            <span class="mini-val" id="mini-mode">Запись экрана</span>
+            <span class="mini-key" data-i18n="Режим">Режим</span>
+            <span class="mini-val" id="mini-mode" data-i18n="Запись экрана">Запись экрана</span>
             <span class="grow"></span>
             <span class="mini-format" id="mini-format">MP4</span>
           </div>
 
           <div class="mini-row mini-audio">
-            <button class="mini-toggle" id="mini-mic">Микрофон</button>
+            <button class="mini-toggle" id="mini-mic" data-i18n="Микрофон">Микрофон</button>
             <div class="mini-meter"><span id="mini-mic-fill"></span></div>
-            <button class="mini-toggle" id="mini-system">Система</button>
+            <button class="mini-toggle" id="mini-system" data-i18n="Система">Система</button>
             <div class="mini-meter"><span id="mini-system-fill"></span></div>
           </div>
 
           <div class="mini-row mini-links">
-            <button class="mini-link" id="mini-history">История</button>
-            <button class="mini-link" id="mini-settings">Настройки</button>
+            <button class="mini-link" id="mini-history" data-i18n="История">История</button>
+            <button class="mini-link" id="mini-settings" data-i18n="Настройки">Настройки</button>
             <span class="grow"></span>
-            <button class="mini-link" id="mini-library-clear">Очистить</button>
+            <button class="mini-link" id="mini-library-clear" data-i18n="Очистить">Очистить</button>
           </div>
         </section>
       </main>
@@ -801,7 +809,7 @@
           <div class="editor-title" id="editor-title">—</div>
           <div class="editor-head-actions">
             <span class="editor-meta mono" id="editor-meta"></span>
-            <button class="win-btn" id="editor-close" title="Закрыть">&#215;</button>
+            <button class="win-btn" id="editor-close" title="Закрыть" data-i18n-title="Закрыть">&#215;</button>
           </div>
         </div>
 
@@ -810,7 +818,7 @@
           <img id="editor-image" alt="" hidden />
           <canvas id="editor-canvas" hidden></canvas>
           <div class="preview-progress" id="preview-progress" hidden>
-            <div class="preview-progress-text" id="preview-progress-text">Готовим предпросмотр…</div>
+            <div class="preview-progress-text" id="preview-progress-text" data-i18n="Готовим предпросмотр…">Готовим предпросмотр…</div>
             <div class="preview-progress-bar"><span id="preview-progress-fill"></span></div>
             <div class="preview-progress-note mono" id="preview-progress-note"></div>
           </div>
@@ -818,10 +826,10 @@
 
         <div class="markup-bar" id="markup-bar" hidden>
           <div class="tool-group">
-            <button class="tool is-active" data-tool="arrow" title="Стрелка">↗</button>
-            <button class="tool" data-tool="rect" title="Прямоугольник">▭</button>
-            <button class="tool" data-tool="text" title="Текст">T</button>
-            <button class="tool" data-tool="blur" title="Мозаика">▦</button>
+            <button class="tool is-active" data-tool="arrow" title="Стрелка" data-i18n-title="Стрелка">↗</button>
+            <button class="tool" data-tool="rect" title="Прямоугольник" data-i18n-title="Прямоугольник">▭</button>
+            <button class="tool" data-tool="text" title="Текст" data-i18n-title="Текст">T</button>
+            <button class="tool" data-tool="blur" title="Мозаика" data-i18n-title="Мозаика">▦</button>
           </div>
           <div class="swatches" id="markup-colors">
             <button class="swatch is-active" data-color="#ff5a52" style="background:#ff5a52"></button>
@@ -830,52 +838,52 @@
             <button class="swatch" data-color="#4aa8ff" style="background:#4aa8ff"></button>
             <button class="swatch" data-color="#ffffff" style="background:#ffffff"></button>
           </div>
-          <select id="markup-width" class="mini-select" title="Толщина">
-            <option value="3">тонко</option>
-            <option value="6" selected>средне</option>
-            <option value="12">толсто</option>
+          <select id="markup-width" class="mini-select" title="Толщина" data-i18n-title="Толщина">
+            <option value="3" data-i18n="тонко">тонко</option>
+            <option value="6" selected data-i18n="средне">средне</option>
+            <option value="12" data-i18n="толсто">толсто</option>
           </select>
-          <button class="tool" id="markup-undo" title="Отменить последний шаг">↶</button>
+          <button class="tool" id="markup-undo" title="Отменить последний шаг" data-i18n-title="Отменить последний шаг">↶</button>
           <span class="grow"></span>
-          <button class="ghost small" id="markup-clipboard">Копировать</button>
-          <button class="ghost small" id="markup-copy">Сохранить копию</button>
-          <button class="ghost small" id="markup-cancel">Отменить</button>
+          <button class="ghost small" id="markup-clipboard" data-i18n="Копировать">Копировать</button>
+          <button class="ghost small" id="markup-copy" data-i18n="Сохранить копию">Сохранить копию</button>
+          <button class="ghost small" id="markup-cancel" data-i18n="Отменить">Отменить</button>
         </div>
 
         <div class="editor-timeline" id="editor-timeline">
           <div class="tl-selection" id="tl-selection"></div>
           <div class="tl-playhead" id="tl-playhead"></div>
-          <div class="tl-handle tl-in" id="tl-in" title="Начало вырезки"></div>
-          <div class="tl-handle tl-out" id="tl-out" title="Конец вырезки"></div>
+          <div class="tl-handle tl-in" id="tl-in" title="Начало вырезки" data-i18n-title="Начало вырезки"></div>
+          <div class="tl-handle tl-out" id="tl-out" title="Конец вырезки" data-i18n-title="Конец вырезки"></div>
         </div>
 
         <div class="editor-controls">
           <div class="editor-row">
-            <button class="ghost" id="editor-play">Играть</button>
-            <button class="ghost small" id="editor-fullscreen" title="Во весь экран (двойной клик по видео)">
+            <button class="ghost" id="editor-play" data-i18n="Играть">Играть</button>
+            <button class="ghost small" id="editor-fullscreen" title="Во весь экран (двойной клик по видео)" data-i18n-title="Во весь экран (двойной клик по видео)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg>
-              <span id="editor-fullscreen-label">Во весь экран</span>
+              <span id="editor-fullscreen-label" data-i18n="Во весь экран">Во весь экран</span>
             </button>
             <span class="editor-time mono" id="editor-time">00:00 / 00:00</span>
             <span class="grow"></span>
-            <label class="editor-check"><input type="checkbox" id="editor-accurate" checked /> точная обрезка</label>
-            <select id="editor-speed" class="mini-select" title="Скорость воспроизведения">
+            <label class="editor-check"><input type="checkbox" id="editor-accurate" checked /> <span data-i18n="точная обрезка">точная обрезка</span></label>
+            <select id="editor-speed" class="mini-select" title="Скорость воспроизведения" data-i18n-title="Скорость воспроизведения">
               <option value="0.5">0.5×</option>
               <option value="1" selected>1×</option>
               <option value="1.5">1.5×</option>
               <option value="2">2×</option>
             </select>
-            <button class="ghost small" id="editor-speed-apply">Применить скорость</button>
+            <button class="ghost small" id="editor-speed-apply" data-i18n="Применить скорость">Применить скорость</button>
           </div>
           <div class="editor-row">
             <span class="editor-sel mono" id="editor-sel">—</span>
             <span class="grow"></span>
-            <button class="ghost small" id="editor-mark-in">Начало здесь</button>
-            <button class="ghost small" id="editor-mark-out">Конец здесь</button>
-            <button class="ghost small" id="editor-snapshot">Кадр в PNG</button>
-            <button class="ghost small danger" id="editor-delete">Удалить</button>
-            <button class="ghost small" id="editor-cancel">Закрыть</button>
-            <button class="rec-btn primary" id="editor-trim"><span id="editor-trim-label">Подрезать</span></button>
+            <button class="ghost small" id="editor-mark-in" data-i18n="Начало здесь">Начало здесь</button>
+            <button class="ghost small" id="editor-mark-out" data-i18n="Конец здесь">Конец здесь</button>
+            <button class="ghost small" id="editor-snapshot" data-i18n="Кадр в PNG">Кадр в PNG</button>
+            <button class="ghost small danger" id="editor-delete" data-i18n="Удалить">Удалить</button>
+            <button class="ghost small" id="editor-cancel" data-i18n="Закрыть">Закрыть</button>
+            <button class="rec-btn primary" id="editor-trim"><span id="editor-trim-label" data-i18n="Подрезать">Подрезать</span></button>
           </div>
         </div>
       </div>
@@ -887,6 +895,8 @@
       <div class="countdown-hint" id="countdown-hint"></div>
     </div>
 
+    <script src="../i18n/en.js"></script>
+    <script src="../i18n/i18n.js"></script>
     <script src="ui-polish.js"></script>
     <script type="module" src="app.js"></script>
   </body>

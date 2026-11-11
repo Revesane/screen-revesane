@@ -13,8 +13,10 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const I18N = require("../i18n/i18n.js");
 
 const POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right", "center"];
+// Подписи позиций — ключи i18n: переводятся через I18N.t там, где их показывают.
 const POSITION_LABELS = {
   "top-left": "слева сверху",
   "top-right": "справа сверху",
@@ -107,7 +109,7 @@ function plan(watermark) {
     })();
     if (!maybe) {
       // Картинки нет — не молчим, пусть вызывающий добавит предупреждение.
-      return { error: `файл водяного знака не найден: ${path.basename(imagePath)}` };
+      return { error: I18N.t("файл водяного знака не найден: {0}", path.basename(imagePath)) };
     }
     const [x, y] = pos.overlay;
     const chain = [
@@ -125,7 +127,7 @@ function plan(watermark) {
   }
 
   const font = fontPath();
-  if (!font) return { error: "не найден системный шрифт для текста водяного знака" };
+  if (!font) return { error: I18N.t("не найден системный шрифт для текста водяного знака") };
 
   const textFile = path.join(os.tmpdir(), `screen-revesane-wm-${Date.now()}-${Math.random().toString(16).slice(2, 8)}.txt`);
   fs.writeFileSync(textFile, watermark.text, "utf8");

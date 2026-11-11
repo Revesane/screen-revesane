@@ -12,6 +12,7 @@ const { pathToFileURL } = require("node:url");
 const log = require("./log");
 const watermark = require("./watermark");
 const ffmpegFetch = require("./ffmpeg-fetch");
+const I18N = require("../i18n/i18n.js");
 
 // Кадры и таймеры не должны замирать, когда окно свёрнуто или спрятано:
 // запись идёт в setInterval-цикле renderer-а.
@@ -69,7 +70,7 @@ const CODES = {
 };
 
 function fail(code, extra = {}) {
-  return { ok: false, code, message: CODES[code] || null, ...extra };
+  return { ok: false, code, message: CODES[code] ? I18N.t(CODES[code]) : null, ...extra };
 }
 
 const DEFAULT_SETTINGS = {
@@ -120,6 +121,8 @@ const DEFAULT_SETTINGS = {
   hotkeys: { toggle: "F9", pause: "F8", screenshot: "F10", region: "F7", regionShot: "F6", stop: "", library: "", mic: "", panel: "" },
   outputDir: OUTPUT_DIR,
   outputDirShots: "",
+  // авто = язык системы
+  language: "auto",
 };
 
 let mainWindow = null;
@@ -177,6 +180,12 @@ async function writeSettings(patch) {
   await fsp.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
   await fsp.writeFile(SETTINGS_PATH, JSON.stringify(next, null, 2), "utf8");
   return next;
+}
+
+/** Язык интерфейса: явный выбор пользователя, иначе язык системы. */
+function resolveLang(pref) {
+  if (pref === "ru" || pref === "en") return pref;
+  return String(app.getLocale() || "").toLowerCase().startsWith("ru") ? "ru" : "en";
 }
 
 function outputDir() {
@@ -379,7 +388,9 @@ function createMainWindow() {
     },
   });
 
-  mainWindow.loadFile(path.join(ROOT, "src", "renderer", "index.html"));
+  mainWindow.loadFile(path.join(ROOT, "src", "renderer", "index.html"), {
+    query: { lang: resolveLang(readSettings().language) },
+  });
   mainWindow.once("ready-to-show", () => mainWindow.show());
   // На Windows это WDA_EXCLUDEFROMCAPTURE: наше окно не попадает в запись,
   // но остаётся видимым на экране.
@@ -673,6 +684,8 @@ async function pickRegion(intent = "video") {
         // Скрыто ли своё окно из захвата: оверлей подскажет, почему приложение
         // не видно под рамкой.
         selfHidden: readSettings().hideSelf !== false ? "1" : "0",
+        // Язык интерфейса оверлея — сразу, без ожидания события от main.
+        lang: resolveLang(readSettings().language),
       },
     });
     // Битая загрузка иначе оставляла скрытое окно навсегда: выделение области
@@ -1019,7 +1032,12 @@ function resolveCodecs(target, settings) {
     videoKey,
     audioKey,
     note: replaced
-      ? `кодеки подогнаны под ${target.toUpperCase()}: ${VIDEO_CODECS[videoKey].label} + ${AUDIO_CODECS[audioKey].label}`
+      ? I18N.t(
+          "кодеки подогнаны под {0}: {1} + {2}",
+          target.toUpperCase(),
+          I18N.t(VIDEO_CODECS[videoKey].label),
+          I18N.t(AUDIO_CODECS[audioKey].label),
+        )
       : null,
   };
 }
@@ -1048,7 +1066,7 @@ function convertContainer(sourcePath, container, options = {}) {
     return Promise.resolve({ path: sourcePath, converted: false });
   }
   if (!ffmpegPath) {
-    return Promise.resolve({ path: sourcePath, converted: false, note: `ffmpeg нет — оставлен ${path.extname(sourcePath)}` });
+    return Promise.resolve({ path: sourcePath, converted: false, note: I18N.t("ffmpeg нет — оставлен {0}", path.extname(sourcePath)) });
   }
 
   let outPath = sourcePath.replace(/\.[^.]+$/, "") + ext;
@@ -1058,7 +1076,7 @@ function convertContainer(sourcePath, container, options = {}) {
 
   const base = ["-hide_banner", "-loglevel", "error", "-y", "-i", sourcePath];
   if (target !== "gif" && !CONTAINER_ARGS[target]) {
-    return Promise.resolve({ path: sourcePath, converted: false, note: `контейнер ${raw} не поддержан` });
+    return Promise.resolve({ path: sourcePath, converted: false, note: I18N.t("контейнер {0} не поддержан", raw) });
   }
 
   const settings = readSettings();
@@ -1116,7 +1134,7 @@ function convertContainer(sourcePath, container, options = {}) {
       if (code !== 0) {
         if (replaceInPlace) await fsp.unlink(outPath).catch(() => {});
         log.error("ffmpeg", `перекод в ${raw.toUpperCase()} не удался: ${String(stderr).trim().slice(0, 300)}`);
-        return resolve({ path: sourcePath, converted: false, note: `перекод в ${raw.toUpperCase()} не удался` });
+        return resolve({ path: sourcePath, converted: false, note: I18N.t("перекод в {0} не удался", raw.toUpperCase()) });
       }
       if (replaceInPlace) {
         try {
@@ -1124,7 +1142,7 @@ function convertContainer(sourcePath, container, options = {}) {
           await fsp.rename(outPath, sourcePath);
           outPath = sourcePath;
         } catch (err) {
-          return resolve({ path: sourcePath, converted: false, note: `не удалось заменить файл: ${err.message}` });
+          return resolve({ path: sourcePath, converted: false, note: I18N.t("не удалось заменить файл: {0}", err.message) });
         }
       }
       resolve({ path: outPath, converted: true });
@@ -1136,8 +1154,8 @@ function convertContainer(sourcePath, container, options = {}) {
 async function convertAudio(sourcePath, format) {
   const key = String(format || "mp3").toLowerCase();
   const spec = AUDIO_ARGS[key];
-  if (!spec) return { path: sourcePath, converted: false, note: `аудиоформат ${format} не поддержан` };
-  if (!ffmpegPath) return { path: sourcePath, converted: false, note: "ffmpeg нет — сохранён исходный контейнер" };
+  if (!spec) return { path: sourcePath, converted: false, note: I18N.t("аудиоформат {0} не поддержан", format) };
+  if (!ffmpegPath) return { path: sourcePath, converted: false, note: I18N.t("ffmpeg нет — сохранён исходный контейнер") };
 
   const settings = readSettings();
   const codec = {
@@ -1463,7 +1481,7 @@ async function makePreview(filePath, options = {}) {
   if (playable) return { ok: true, url: pathToFileURL(filePath).href, direct: true };
   if (!ffmpegPath) {
     log.warn("preview", `прокси недоступен: нет ffmpeg, отдаю файл как есть [SR5001]`);
-    return { ok: true, url: pathToFileURL(filePath).href, direct: true, note: "прокси недоступен: нет ffmpeg" };
+    return { ok: true, url: pathToFileURL(filePath).href, direct: true, note: I18N.t("прокси недоступен: нет ffmpeg") };
   }
 
   const previewDir = path.join(app.getPath("temp"), "screen-revesane-preview");
@@ -1476,7 +1494,7 @@ async function makePreview(filePath, options = {}) {
   // прокси не должен попасть в кэш как готовый. Расширение .mp4 обязано остаться
   // в конце имени — иначе ffmpeg не может выбрать муксер по имени файла.
   const partPath = path.join(previewDir, `${key}.part.mp4`);
-  const note = "предпросмотр в пониженном качестве";
+  const note = I18N.t("предпросмотр в пониженном качестве");
 
   let ready = false;
   // force — пересобрать прокси заново. Нужен самопроверке (иначе готовый кэш
@@ -1494,7 +1512,7 @@ async function makePreview(filePath, options = {}) {
     return { ok: true, url: pathToFileURL(outPath).href, direct: false, note, cached: true };
   }
 
-  sendPreviewProgress({ filePath, phase: "probe", percent: 0, message: "читаю длительность записи" });
+  sendPreviewProgress({ filePath, phase: "probe", percent: 0, message: I18N.t("читаю длительность записи") });
   const probe = await probeMedia(filePath);
   const durationSec = Number(probe?.duration) || 0;
 
@@ -1504,7 +1522,7 @@ async function makePreview(filePath, options = {}) {
     phase: "encode",
     percent: 0,
     durationSec,
-    message: "перекодирую в H.264 для проигрывания",
+    message: I18N.t("перекодирую в H.264 для проигрывания"),
   });
   const run = await runFfmpegProgress(
     [
@@ -1774,11 +1792,11 @@ async function finishCapture(payload = {}) {
   let wmPlan = null;
   if (watermark.isActive(wmSettings)) {
     if (wasAudio) {
-      note = "водяной знак не накладывается на аудиозапись";
+      note = I18N.t("водяной знак не накладывается на аудиозапись");
     } else {
       wmPlan = watermark.plan(wmSettings);
       if (wmPlan?.error) {
-        note = `водяной знак не наложен: ${wmPlan.error}`;
+        note = I18N.t("водяной знак не наложен: {0}", wmPlan.error);
         failCode = "SR2002";
         log.warn("watermark", `${note} [SR2002]`);
         wmPlan = null;
@@ -1807,7 +1825,7 @@ async function finishCapture(payload = {}) {
     // а знак при этом уже в кадре.
     if (!converted) {
       failCode = "SR2002";
-      note = note || "водяной знак не наложен: перекод не удался";
+      note = note || I18N.t("водяной знак не наложен: перекод не удался");
       log.error("watermark", `${note} [SR2002]`);
     } else {
       if (finalPath !== sourcePath) await fsp.unlink(sourcePath).catch(() => {});
@@ -1820,12 +1838,12 @@ async function finishCapture(payload = {}) {
         converted = true;
         await fsp.unlink(sourcePath).catch(() => {});
       } catch (err) {
-        note = `перекод в MP4 не удался: ${err.message}`;
+        note = I18N.t("перекод в MP4 не удался: {0}", err.message);
         failCode = "SR2002";
         log.error("capture", `${note} [SR2002]`);
       }
     } else if (ext === ".webm") {
-      note = "ffmpeg не найден — сохранён WebM";
+      note = I18N.t("ffmpeg не найден — сохранён WebM");
       failCode = "SR5001";
     }
   } else {
@@ -1858,7 +1876,7 @@ async function finishCapture(payload = {}) {
         `файл короче записи на ${(lostMs / 1000).toFixed(1)} с: сессия ${recordedMs} мс, ` +
           `в файле ${fileMs} мс [SR2004]`,
       );
-      note = note ? `${note} · файл короче сессии` : "файл короче сессии";
+      note = note ? I18N.t("{0} · файл короче сессии", note) : I18N.t("файл короче сессии");
     }
   }
 
@@ -2098,14 +2116,28 @@ function registerIpc() {
     capture.audioTarget = { displayId: payload?.displayId ?? null, at: Date.now() };
     return { ok: true };
   });
-  ipcMain.handle("settings:get", () => readSettings());
+  ipcMain.handle("settings:get", () => {
+    const settings = readSettings();
+    return { ...settings, lang: resolveLang(settings.language) };
+  });
   ipcMain.handle("hotkeys:check", (_e, payload) => checkHotkey(payload ?? {}));
   ipcMain.handle("settings:set", async (_e, patch) => {
     const next = await writeSettings(patch);
     let hotkeyErrors = [];
     if (patch && typeof patch === "object" && "hotkeys" in patch) hotkeyErrors = registerHotkeys();
     if (patch && typeof patch === "object" && "showPanel" in patch && !capture.active) hidePanel();
-    return { ...next, hotkeyErrors };
+    const lang = resolveLang(next.language);
+    if (patch && typeof patch === "object" && "language" in patch) {
+      I18N.setLang(lang);
+      for (const win of [mainWindow, panelWindow, frameWindow, regionWindow]) {
+        try {
+          if (win && !win.isDestroyed()) win.webContents.send("lang:changed", lang);
+        } catch {
+          /* окно уже закрыто */
+        }
+      }
+    }
+    return { ...next, lang, hotkeyErrors };
   });
   ipcMain.handle("library:list", () => listLibrary());
   ipcMain.handle("library:clear", () => clearLibrary());
@@ -2144,7 +2176,7 @@ function registerIpc() {
   // Выбор картинки для водяного знака.
   ipcMain.handle("dialog:chooseImage", async (_e, current) => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Картинка водяного знака",
+      title: I18N.t("Картинка водяного знака"),
       properties: ["openFile"],
       filters: [{ name: "PNG", extensions: ["png"] }],
       defaultPath: typeof current === "string" && current ? current : undefined,
@@ -2155,7 +2187,7 @@ function registerIpc() {
 
   ipcMain.handle("dialog:chooseDir", async (_e, current) => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Папка для сохранения",
+      title: I18N.t("Папка для сохранения"),
       properties: ["openDirectory", "createDirectory"],
       defaultPath: typeof current === "string" && current ? current : outputDir(),
     });
@@ -2230,8 +2262,8 @@ function registerIpc() {
       imageFormats: ["png", "jpg", "bmp", "gif", "tiff"],
       codecMatrix: CONTAINER_CODECS,
       codecLabels: {
-        video: Object.fromEntries(Object.entries(VIDEO_CODECS).map(([key, value]) => [key, value.label])),
-        audio: Object.fromEntries(Object.entries(AUDIO_CODECS).map(([key, value]) => [key, value.label])),
+        video: Object.fromEntries(Object.entries(VIDEO_CODECS).map(([key, value]) => [key, I18N.t(value.label)])),
+        audio: Object.fromEntries(Object.entries(AUDIO_CODECS).map(([key, value]) => [key, I18N.t(value.label)])),
       },
       selftest: SELFTEST,
     };
@@ -2350,7 +2382,9 @@ function showPanel(style) {
     } catch {
       /* не критично */
     }
-    panelWindow.loadFile(path.join(ROOT, "src", "panel", "panel.html"));
+    panelWindow.loadFile(path.join(ROOT, "src", "panel", "panel.html"), {
+      query: { lang: resolveLang(readSettings().language) },
+    });
     panelWindow.webContents.once("did-finish-load", () => {
       panelWindow?.webContents.send("panel:style", ball ? "ball" : "full");
     });
@@ -2448,6 +2482,8 @@ function showRecordingFrame(payload = {}) {
       h: String(bounds.height),
       // Формат записи виден в значке рядом с таймером.
       format: String(payload.format || ""),
+      // Язык интерфейса рамки — сразу, без ожидания события от main.
+      lang: resolveLang(readSettings().language),
     },
   });
   frameWindow.once("ready-to-show", () => {
@@ -2555,9 +2591,9 @@ function registerHotkeys() {
         // Канал совпадает с именем действия: hotkey:toggle, hotkey:regionShot…
         mainWindow?.webContents.send(`hotkey:${action.name}`);
       });
-      if (!ok) failed.push(`${action.label} (${accelerator}) — занято другой программой`);
+      if (!ok) failed.push(I18N.t("{0} ({1}) — занято другой программой", I18N.t(action.label), accelerator));
     } catch (err) {
-      failed.push(`${action.label} (${accelerator}) — ${err.message}`);
+      failed.push(I18N.t("{0} ({1}) — {2}", I18N.t(action.label), accelerator, err.message));
     }
   }
   return failed;
@@ -2653,6 +2689,9 @@ app.whenReady().then(async () => {
   }
   installDisplayMediaHandler();
   registerIpc();
+  // Язык выбирается до создания окон: первые же строки интерфейса и сообщений
+  // main-процесса должны быть на нужном языке.
+  I18N.setLang(resolveLang(readSettings().language));
   createMainWindow();
   if (SELFTEST_MODES) createTestTarget();
   registerHotkeys();

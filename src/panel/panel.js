@@ -1,6 +1,15 @@
 "use strict";
 
 (() => {
+  const qs = new URLSearchParams(location.search);
+  I18N.setLang(qs.get("lang") === "en" ? "en" : "ru");
+  I18N.applyDom();
+  window.panelApi.onLang((lang) => {
+    I18N.setLang(lang);
+    I18N.applyDom();
+    renderState();
+  });
+
   const timer = document.getElementById("timer");
   const label = document.getElementById("label");
   const lamp = document.getElementById("lamp");
@@ -16,11 +25,20 @@
     document.body.classList.toggle("ball", style === "ball");
   });
 
+  // Последнее состояние храним, чтобы при смене языка перерисовать подпись.
+  let lastState = null;
+
+  function renderState() {
+    if (!lastState) return;
+    timer.textContent = formatClock(Number(lastState.elapsedMs) || 0);
+    label.textContent = lastState.paused ? I18N.t("Пауза") : I18N.t("запись");
+    lamp.classList.toggle("paused", Boolean(lastState.paused));
+  }
+
   window.panelApi.onState((state) => {
     if (!state) return;
-    timer.textContent = formatClock(Number(state.elapsedMs) || 0);
-    label.textContent = state.paused ? "пауза" : "запись";
-    lamp.classList.toggle("paused", Boolean(state.paused));
+    lastState = state;
+    renderState();
   });
 
   document.getElementById("pause").addEventListener("click", () => window.panelApi.command("pause"));

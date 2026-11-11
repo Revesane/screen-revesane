@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("api", {
   onRegionDisplay: (handler) => ipcRenderer.on("region:display", (_e, info) => handler(info)),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   setSettings: (patch) => ipcRenderer.invoke("settings:set", patch),
+  onLang: (handler) => ipcRenderer.on("lang:changed", (_e, lang) => handler(lang)),
   checkHotkey: (payload) => ipcRenderer.invoke("hotkeys:check", payload),
   library: () => ipcRenderer.invoke("library:list"),
   clearLibrary: () => ipcRenderer.invoke("library:clear"),

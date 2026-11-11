@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <title>Screen Revesane — выделение области</title>
+    <title data-i18n="Screen Revesane — выделение области">Screen Revesane — выделение области</title>
     <style>
       html, body {
         margin: 0; height: 100%; overflow: hidden;
@@ -162,15 +162,15 @@
   </head>
   <body>
     <img id="backdrop" alt="" hidden />
-    <div id="hint">Тяните рамку мышью · <b>Esc</b> — отмена</div>
+    <div id="hint"><span data-i18n="Тяните рамку мышью ·">Тяните рамку мышью ·</span> <b>Esc</b> <span data-i18n="— отмена">— отмена</span></div>
     <div id="actions" hidden>
       <label id="fmt-wrap" hidden>
-        <span>Формат</span>
+        <span data-i18n="Формат">Формат</span>
         <select id="format"></select>
       </label>
-      <button id="accept" class="act primary"><span id="accept-label">Готово</span><kbd id="accept-key">Enter</kbd></button>
-      <button id="copy" class="act"><span>Копировать</span><kbd>Ctrl+C</kbd></button>
-      <button id="cancel" class="act"><span>Отмена</span><kbd>Esc</kbd></button>
+      <button id="accept" class="act primary"><span id="accept-label" data-i18n="Готово">Готово</span><kbd id="accept-key">Enter</kbd></button>
+      <button id="copy" class="act"><span data-i18n="Копировать">Копировать</span><kbd>Ctrl+C</kbd></button>
+      <button id="cancel" class="act"><span data-i18n="Отмена">Отмена</span><kbd>Esc</kbd></button>
     </div>
     <div id="sel">
       <div class="grip" data-dir="nw"></div>
@@ -181,9 +181,11 @@
       <div class="grip" data-dir="s"></div>
       <div class="grip" data-dir="sw"></div>
       <div class="grip" data-dir="w"></div>
-      <div id="move" title="Перенести область">✛</div>
+      <div id="move" title="Перенести область" data-i18n-title="Перенести область">✛</div>
       <span id="size"></span>
     </div>
+    <script src="../i18n/en.js"></script>
+    <script src="../i18n/i18n.js"></script>
     <script src="region.js"></script>
   </body>
 </html>

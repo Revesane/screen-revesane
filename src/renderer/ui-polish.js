@@ -42,7 +42,11 @@
 
   for (const [id, text] of Object.entries(TITLES)) {
     const el = $(id);
-    if (el && !el.title) el.title = text;
+    if (el && !el.title) {
+      el.title = I18N.t(text);
+      // Русский ключ остаётся в атрибуте: I18N.applyDom() переведёт при смене языка.
+      el.setAttribute("data-i18n-title", text);
+    }
   }
 
   const tip = document.createElement("div");
@@ -122,7 +126,14 @@
   document.addEventListener("focusout", hide);
 
   /** Записать подсказку, не мешая той, что показана прямо сейчас. */
-  function setTitle(el, text) {
+  function setTitle(el, key, ...args) {
+    // Аргументы — тоже русские ключи: переводятся вместе с шаблоном.
+    const text = I18N.t(key, ...args.map((arg) => I18N.t(arg)));
+    // Ключ всегда русский и всегда соответствует текущей подсказке:
+    // причина недоступности или обычное пояснение.
+    el.setAttribute("data-i18n-title", key);
+    if (args.length) el.setAttribute("data-i18n-title-args", JSON.stringify(args));
+    else el.removeAttribute("data-i18n-title-args");
     if (tipOwner === el) {
       tipText = text;
       tip.textContent = text;
@@ -136,13 +147,15 @@
   function syncSwitch(sw) {
     const on = sw.classList.contains("is-on");
     sw.setAttribute("aria-checked", String(on));
+    // Имя берём из data-i18n (русский ключ): шаблон и имя переводятся
+    // по отдельности, и I18N.applyDom() пересобирает подсказку при смене языка.
+    const nameOf = (el) => (el ? el.getAttribute("data-i18n") || el.textContent.trim() : "");
     const name =
-      sw.closest(".card")?.querySelector(".card-title")?.textContent.trim() ||
-      sw.querySelector(".switch-name")?.textContent.trim() ||
+      nameOf(sw.closest(".card")?.querySelector(".card-title")) ||
+      nameOf(sw.querySelector(".switch-name")) ||
       "";
-    const state = on ? "включено" : "выключено";
-    const action = on ? "выключить" : "включить";
-    setTitle(sw, name ? `${name}: ${state}. Нажмите, чтобы ${action}` : `${state[0].toUpperCase()}${state.slice(1)}. Нажмите, чтобы ${action}`);
+    if (name) setTitle(sw, on ? "{0}: включено. Нажмите, чтобы выключить" : "{0}: выключено. Нажмите, чтобы включить", name);
+    else setTitle(sw, on ? "Включено. Нажмите, чтобы выключить" : "Выключено. Нажмите, чтобы включить");
   }
 
   document.querySelectorAll(".switch").forEach((sw) => {
@@ -181,7 +194,8 @@
   // Клик по уведомлению закрывает его.
   const toastEl = $("toast");
   if (toastEl) {
-    toastEl.title = "Нажмите, чтобы закрыть";
+    toastEl.title = I18N.t("Нажмите, чтобы закрыть");
+    toastEl.setAttribute("data-i18n-title", "Нажмите, чтобы закрыть");
     toastEl.addEventListener("click", () => {
       toastEl.hidden = true;
     });

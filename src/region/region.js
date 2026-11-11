@@ -9,6 +9,15 @@
  * рамку целиком. Подтверждение — Enter, отмена — Esc.
  */
 (() => {
+  const qs = new URLSearchParams(location.search);
+  I18N.setLang(qs.get("lang") === "en" ? "en" : "ru");
+  I18N.applyDom();
+  window.regionApi.onLang((lang) => {
+    I18N.setLang(lang);
+    I18N.applyDom();
+    renderTexts();
+  });
+
   const sel = document.getElementById("sel");
   const size = document.getElementById("size");
   const hint = document.getElementById("hint");
@@ -42,20 +51,25 @@
   // и подсказку вместо жёсткого «Enter».
   const hotkey = String(query.get("hotkey") || "").trim();
   const confirmKey = hotkey || "Enter";
-  const ACCEPT_LABEL = intent === "shot" ? "Снимок" : "Записать";
-  const CONFIRM_WORD = intent === "shot" ? "снимок" : "записать";
-  const HINT_IDLE = `Тяните рамку мышью · <b>Esc</b> — отмена`;
+  // Подписи считаем при каждом рендере: смена языка сразу обновляет их.
+  const acceptLabel = () => I18N.t(intent === "shot" ? "Снимок" : "Записать");
+  const confirmWord = () => I18N.t(intent === "shot" ? "снимок" : "записать");
+  const hintIdleHtml = () => I18N.t("Тяните рамку мышью · {0} — отмена", "<b>Esc</b>");
   // Главное, чего не хватало: явно сказать, что рамку надо подтвердить.
-  const HINT_ADJUST =
-    `Тяните края, ✛ переносит · <kbd>${confirmKey}</kbd> — ${CONFIRM_WORD}` +
-    `<br><span class="hint-sub">или кнопка «${ACCEPT_LABEL}» внизу` +
+  const hintAdjustHtml = () =>
+    I18N.t("Тяните края, ✛ переносит · <kbd>{0}</kbd> — {1}", confirmKey, confirmWord()) +
+    `<br><span class="hint-sub">` +
+    I18N.t("или кнопка «{0}» внизу", acceptLabel()) +
     (intent === "video"
-      ? " · Esc — отмена</span>"
-      : " · <kbd>Ctrl</kbd>+<kbd>C</kbd> — в буфер · Esc — отмена</span>") +
+      ? I18N.t(" · Esc — отмена")
+      : I18N.t(" · <kbd>Ctrl</kbd>+<kbd>C</kbd> — в буфер · Esc — отмена")) +
+    `</span>` +
     // Подсказка на случай «куда пропало моё окно»: при включённой защите
     // приложение не попадает ни в подложку, ни в запись.
     (query.get("selfHidden") === "1"
-      ? `<br><span class="hint-sub">окно Screen Revesane не попадёт в кадр — включите «Своё окно: в кадре» на главной</span>`
+      ? `<br><span class="hint-sub">` +
+        I18N.t("окно Screen Revesane не попадёт в кадр — включите «Своё окно: в кадре» на главной") +
+        `</span>`
       : "");
 
   // Формат записи выбирается прямо в оверлее: только для видео. Снимку он
@@ -75,11 +89,13 @@
   const formatWrap = document.getElementById("fmt-wrap");
   const formatSelect = document.getElementById("format");
   const copyButton = document.getElementById("copy");
+  // Переводится только подпись «auto»; имена контейнеров остаются как есть.
+  const formatText = (value, label) => (value === "auto" ? I18N.t(label) : label);
   if (intent === "video") {
     for (const [value, label] of FORMATS) {
       const option = document.createElement("option");
       option.value = value;
-      option.textContent = label;
+      option.textContent = formatText(value, label);
       formatSelect.appendChild(option);
     }
     formatSelect.value = query.get("container") || "auto";
@@ -136,9 +152,26 @@
     sel.classList.toggle("narrow", rect.width < 150);
   }
 
-  function setHint(html, dim) {
+  // Какую подсказку показываем: храним вид, а не готовый HTML, чтобы при
+  // смене языка пересобрать её через I18N.t.
+  let hintKind = "idle"; // idle | adjust | need-draw
+  let hintDim = false;
+
+  function renderHint() {
+    const html =
+      hintKind === "adjust"
+        ? hintAdjustHtml()
+        : hintKind === "need-draw"
+          ? I18N.t("Сначала выделите рамку мышью, потом нажмите клавишу ещё раз")
+          : hintIdleHtml();
     hint.innerHTML = html;
-    hint.style.opacity = dim ? "0.35" : "1";
+    hint.style.opacity = hintDim ? "0.35" : "1";
+  }
+
+  function setHint(kind, dim) {
+    hintKind = kind;
+    hintDim = dim;
+    renderHint();
   }
 
   function inside(point) {
@@ -197,7 +230,7 @@
     mode = "adjust";
     sel.classList.add("adjust");
     actions.hidden = false;
-    setHint(HINT_ADJUST, false);
+    setHint("adjust", false);
     paint();
   }
 
@@ -223,7 +256,7 @@
     mode = "draw";
     anchor = { x: event.clientX, y: event.clientY };
     sel.classList.remove("adjust", "busy");
-    setHint(HINT_IDLE, true);
+    setHint("idle", true);
     rect = { x: anchor.x, y: anchor.y, width: 0, height: 0 };
     paint();
   });
@@ -255,7 +288,7 @@
       if (!rect || rect.width < MIN_SIDE || rect.height < MIN_SIDE) {
         rect = null;
         sel.classList.remove("on", "adjust");
-        setHint(HINT_IDLE, false);
+        setHint("idle", false);
         mode = "idle";
         return;
       }
@@ -265,7 +298,7 @@
     if (mode === "resize" || mode === "move") {
       sel.classList.remove("busy");
       mode = "adjust";
-      setHint(HINT_ADJUST, false);
+      setHint("adjust", false);
     }
   });
 
@@ -305,8 +338,7 @@
       done(rect);
       return;
     }
-    hint.innerHTML = `Сначала выделите рамку мышью, потом нажмите клавишу ещё раз`;
-    hint.style.opacity = "1";
+    setHint("need-draw", false);
   });
   document.getElementById("copy").addEventListener("click", () => {
     if (mode === "adjust" && rect) done({ ...rect, copy: true });
@@ -315,10 +347,22 @@
 
   // Подпись меняем только у надписи: бейдж <kbd>Enter</kbd> внутри кнопки
   // должен остаться на месте.
-  document.getElementById("accept-label").textContent = ACCEPT_LABEL;
+  document.getElementById("accept-label").textContent = acceptLabel();
   // Кнопка подписана той же клавишей, которой рамка подтверждается повторно.
   const acceptKey = document.getElementById("accept-key");
   if (acceptKey && hotkey) acceptKey.textContent = hotkey;
+
+  // Повторный рендер динамических подписей при смене языка.
+  function renderTexts() {
+    document.getElementById("accept-label").textContent = acceptLabel();
+    if (intent === "video") {
+      for (const [value, label] of FORMATS) {
+        const option = formatSelect.querySelector(`option[value="${value}"]`);
+        if (option) option.textContent = formatText(value, label);
+      }
+    }
+    renderHint();
+  }
 
   window.addEventListener("contextmenu", (event) => {
     event.preventDefault();

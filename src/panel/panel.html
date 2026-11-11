@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <title>Screen Revesane — панель записи</title>
+    <title data-i18n="Screen Revesane — панель записи">Screen Revesane — панель записи</title>
     <style>
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
@@ -47,15 +47,17 @@
     <div class="panel">
       <span class="lamp" id="lamp"></span>
       <span class="timer" id="timer">00:00</span>
-      <span class="label" id="label">запись</span>
+      <span class="label" id="label" data-i18n="запись">запись</span>
       <span class="grow"></span>
-      <button class="btn-pause" id="pause" title="Пауза (F8)">
+      <button class="btn-pause" id="pause" title="Пауза (F8)" data-i18n-title="Пауза (F8)">
         <svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg>
       </button>
-      <button class="btn-stop stop" id="stop" title="Стоп (F9)">
+      <button class="btn-stop stop" id="stop" title="Стоп (F9)" data-i18n-title="Стоп (F9)">
         <svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></svg>
       </button>
     </div>
+    <script src="../i18n/en.js"></script>
+    <script src="../i18n/i18n.js"></script>
     <script src="panel.js"></script>
   </body>
 </html>

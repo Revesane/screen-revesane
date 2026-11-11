@@ -30,8 +30,8 @@ const recorder = new Recorder({
   onChunk: (buffer) => window.api.sendChunk(buffer),
   onError: (err) => {
     setRecState("error");
-    $("status").textContent = "Ошибка записи";
-    toast(`Запись прервана: ${err.message}`, "error");
+    $("status").textContent = I18N.t("Ошибка записи");
+    toast(I18N.t("Запись прервана: {0}", err.message), "error");
     if (state.recording) void endRecording();
   },
 });
@@ -70,17 +70,17 @@ function uiLog(level, message, module = "ui") {
 
 /** Ошибка в человеческом виде: сообщение + код, если main его вернул. */
 function describeFailure(result) {
-  if (!result) return "неизвестная ошибка";
-  const text = result.message || result.error || result.reason || "неизвестная ошибка";
+  if (!result) return I18N.t("неизвестная ошибка");
+  const text = result.message || result.error || result.reason || I18N.t("неизвестная ошибка");
   return result.code ? `${text} [${result.code}]` : text;
 }
 
 function formatSize(bytes) {
-  if (!bytes) return "0 Б";
+  if (!bytes) return I18N.t("0 Б");
   const mb = bytes / (1024 * 1024);
-  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} ГБ`;
-  if (mb >= 1) return `${mb.toFixed(1)} МБ`;
-  return `${Math.round(bytes / 1024)} КБ`;
+  if (mb >= 1024) return I18N.t("{0} ГБ", (mb / 1024).toFixed(2));
+  if (mb >= 1) return I18N.t("{0} МБ", mb.toFixed(1));
+  return I18N.t("{0} КБ", Math.round(bytes / 1024));
 }
 
 function formatClock(ms) {
@@ -104,6 +104,20 @@ function formatDate(ms) {
   const d = new Date(ms);
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/**
+ * Имена экранов Chromium локализует по языку системы («Весь экран»,
+ * «Экран 2»), а не по языку приложения — переводим их сами. Имена окон
+ * приходят из заголовков программ и остаются как есть.
+ */
+function sourceLabel(source) {
+  const name = String(source?.name || "");
+  if (!name) return I18N.t("(без имени)");
+  if (source.kind !== "screen") return name;
+  if (/^(весь экран|entire screen)$/i.test(name)) return I18N.t("Весь экран");
+  const numbered = /^(?:экран|screen)\s+(\d+)$/i.exec(name);
+  return numbered ? I18N.t("Экран {0}", numbered[1]) : name;
 }
 
 function setRailState(text, mode) {
@@ -152,7 +166,7 @@ function startMeters() {
     paintMeter("system-meter", "system-level-fill", system);
     paintMeter("mic-level", "mic-level-fill", mic);
     const db = $("mic-db");
-    if (db) db.textContent = mic > 0.0005 ? `${Math.round(20 * Math.log10(mic))} дБ` : "—";
+    if (db) db.textContent = mic > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(mic))) : "—";
   }, 120);
 }
 
@@ -224,7 +238,7 @@ function startPreviewLoop() {
     paintMiniMeter("mini-mic-fill", mic);
     paintMiniMeter("mini-system-fill", system);
     const db = $("mic-db");
-    if (db) db.textContent = mic > 0.0005 ? `${Math.round(20 * Math.log10(mic))} дБ` : "—";
+    if (db) db.textContent = mic > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(mic))) : "—";
   }, 120);
 }
 
@@ -409,17 +423,17 @@ function syncPreviewMeters() {
 
 function setRecordingUi(on) {
   $("btn-primary").classList.toggle("is-live", on);
-  $("primary-label").textContent = on ? "СТОП" : state.action === "shot" ? "СНЯТЬ" : "REC";
+  $("primary-label").textContent = on ? I18N.t("СТОП") : state.action === "shot" ? I18N.t("СНЯТЬ") : "REC";
   $("btn-pause").hidden = !on;
   $("rec-lamp").classList.toggle("is-live", on);
-  $("status").textContent = on ? "Идёт запись" : "Готов";
+  $("status").textContent = on ? I18N.t("Идёт запись") : I18N.t("Готов");
   setRecState(on ? "live" : state.action === "shot" ? "shot" : "ready");
   document.querySelectorAll(".preset").forEach((button) => {
     button.disabled = on;
     button.style.opacity = on ? "0.5" : "1";
   });
   $("mode-select-btn").disabled = on;
-  setRailState(on ? "запись" : "готов", on ? "live" : "ok");
+  setRailState(on ? I18N.t("запись") : I18N.t("готов"), on ? "live" : "ok");
   renderMini();
 }
 
@@ -427,16 +441,16 @@ function setRecordingUi(on) {
 function renderAction() {
   const isShot = state.action === "shot";
   const labels = {
-    "screen:video": "Запись экрана",
-    "window:video": "Запись окна",
-    "region:video": "Выделить и записать видео",
-    "audio:video": "Аудио запись",
-    "screen:shot": "Скриншот экрана",
-    "window:shot": "Скриншот окна",
-    "region:shot": "Скриншот области",
+    "screen:video": I18N.t("Запись экрана"),
+    "window:video": I18N.t("Запись окна"),
+    "region:video": I18N.t("Выделить и записать видео"),
+    "audio:video": I18N.t("Аудио запись"),
+    "screen:shot": I18N.t("Скриншот экрана"),
+    "window:shot": I18N.t("Скриншот окна"),
+    "region:shot": I18N.t("Скриншот области"),
   };
   const key = `${state.mode}:${state.action}`;
-  $("mode-select-label").textContent = labels[key] || "Запись экрана";
+  $("mode-select-label").textContent = labels[key] || I18N.t("Запись экрана");
 
   document.querySelectorAll(".preset").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.preset === key);
@@ -447,10 +461,10 @@ function renderAction() {
   // Скриншот не умеет «только звук».
   if (isShot && state.mode === "audio") {
     state.mode = "screen";
-    $("mode-select-label").textContent = "Скриншот экрана";
+    $("mode-select-label").textContent = I18N.t("Скриншот экрана");
   }
 
-  $("primary-label").textContent = state.recording ? "СТОП" : isShot ? "СНЯТЬ" : "REC";
+  $("primary-label").textContent = state.recording ? I18N.t("СТОП") : isShot ? I18N.t("СНЯТЬ") : "REC";
   $("btn-primary").classList.toggle("is-shot", isShot);
   if (!state.recording) setRecState(isShot ? "shot" : "ready");
   renderPresetKeys();
@@ -462,15 +476,15 @@ function togglePause() {
   if (!state.recording) return;
   if (recorder.paused) {
     recorder.resume();
-    $("status").textContent = "Идёт запись";
-    $("rail-state-text").textContent = "запись";
-    $("btn-pause").innerHTML = "Пауза <kbd>F8</kbd>";
+    $("status").textContent = I18N.t("Идёт запись");
+    $("rail-state-text").textContent = I18N.t("запись");
+    $("btn-pause").innerHTML = `${I18N.t("Пауза")} <kbd>F8</kbd>`;
     setRecState("live");
   } else {
     recorder.pause();
-    $("status").textContent = "Пауза";
-    $("rail-state-text").textContent = "пауза";
-    $("btn-pause").innerHTML = "Продолжить <kbd>F8</kbd>";
+    $("status").textContent = I18N.t("Пауза");
+    $("rail-state-text").textContent = I18N.t("пауза");
+    $("btn-pause").innerHTML = `${I18N.t("Продолжить")} <kbd>F8</kbd>`;
     setRecState("paused");
   }
 }
@@ -499,7 +513,7 @@ async function refreshSources() {
   try {
     state.sources = await window.api.listSources();
   } catch (err) {
-    toast(`Не удалось получить список источников: ${err.message}`, "error");
+    toast(I18N.t("Не удалось получить список источников: {0}", err.message), "error");
     return;
   }
   renderSources();
@@ -520,14 +534,14 @@ function renderSources() {
   if (!list.length) {
     select.disabled = true;
     const option = document.createElement("option");
-    option.textContent = state.mode === "window" ? "окна не найдены" : "экраны не найдены";
+    option.textContent = state.mode === "window" ? I18N.t("окна не найдены") : I18N.t("экраны не найдены");
     select.appendChild(option);
   } else {
     select.disabled = false;
     for (const source of list) {
       const option = document.createElement("option");
       option.value = source.id;
-      option.textContent = source.name || "(без имени)";
+      option.textContent = sourceLabel(source);
       select.appendChild(option);
     }
     if (!state.selected[selKey] || !list.some((s) => s.id === state.selected[selKey])) {
@@ -543,13 +557,13 @@ function renderSources() {
   $("region-label").hidden = !regionMode;
 
   const modeNames = {
-    screen: "Весь экран",
-    window: "Окно приложения",
-    region: "Выделенная область",
-    audio: "Только звук",
+    screen: I18N.t("Весь экран"),
+    window: I18N.t("Окно приложения"),
+    region: I18N.t("Выделенная область"),
+    audio: I18N.t("Только звук"),
   };
   const sourceStatus = $("source-status");
-  if (sourceStatus) sourceStatus.textContent = modeNames[state.mode] || "Весь экран";
+  if (sourceStatus) sourceStatus.textContent = modeNames[state.mode] || I18N.t("Весь экран");
 
   // Превью источника — настоящий снимок рабочего стола/окна из списка
   // источников (desktopCapturer отдаёт его вместе с именем), не картинка-заглушка.
@@ -559,7 +573,7 @@ function renderSources() {
   if (previewWrap && previewImg) {
     if (current?.thumbnail) {
       previewImg.src = current.thumbnail;
-      previewImg.alt = current.name || "источник";
+      previewImg.alt = current.name || I18N.t("источник");
       previewWrap.hidden = false;
     } else {
       previewImg.removeAttribute("src");
@@ -575,10 +589,10 @@ function renderRegionCard() {
   const label = $("region-label");
   if (!label) return;
   if (state.region) {
-    label.textContent = `${Math.round(state.region.width)}×${Math.round(state.region.height)} в (${Math.round(state.region.x)}, ${Math.round(state.region.y)})`;
+    label.textContent = I18N.t("{0}×{1} в ({2}, {3})", Math.round(state.region.width), Math.round(state.region.height), Math.round(state.region.x), Math.round(state.region.y));
     label.classList.add("is-set");
   } else {
-    label.textContent = "не выбрана";
+    label.textContent = I18N.t("не выбрана");
     label.classList.remove("is-set");
   }
 }
@@ -587,51 +601,52 @@ function renderRegionCard() {
 function updateStrip() {
   const settings = state.settings || {};
   const minutes = Number(settings.autostopMin) || 0;
-  $("strip-autostop-text").textContent = `Автоматическая остановка (${minutes ? `${minutes} мин` : "OFF"})`;
+  $("strip-autostop-text").textContent = I18N.t("Автоматическая остановка ({0})", minutes ? I18N.t("{0} мин", minutes) : "OFF");
   $("strip-autostop").classList.toggle("is-on", minutes > 0);
   const armed = Boolean(schedule.startTimer);
   if (armed && schedule.label) {
-    $("strip-schedule-text").textContent = `Расписание задач (${schedule.label})`;
+    $("strip-schedule-text").textContent = I18N.t("Расписание задач ({0})", schedule.label);
   } else {
     const delayMin = Number($("sel-schedelay")?.value) || 0;
     const clock = $("sel-schemode")?.value === "clock";
-    $("strip-schedule-text").textContent = `Расписание задач (${
-      clock ? clockFieldValue() || "OFF" : delayMin ? `${delayMin} мин` : "OFF"
-    })`;
+    $("strip-schedule-text").textContent = I18N.t(
+      "Расписание задач ({0})",
+      clock ? clockFieldValue() || "OFF" : delayMin ? I18N.t("{0} мин", delayMin) : "OFF",
+    );
   }
   $("strip-schedule").classList.toggle("is-on", armed || Number($("sel-schedelay")?.value) > 0);
   const container = String(settings.videoContainer || "auto");
-  $("strip-format-text").textContent = `Формат: ${container === "auto" ? "как у Chromium" : container.toUpperCase()}`;
+  $("strip-format-text").textContent = I18N.t("Формат: {0}", container === "auto" ? I18N.t("как у Chromium") : container.toUpperCase());
   $("strip-format").classList.toggle("is-on", container !== "auto");
   // Своё окно: «скрыто» — приложение исключено из захвата (hideSelf), «в кадре»
   // — попадает в запись.
   const selfHidden = settings.hideSelf !== false;
-  $("strip-self-text").textContent = selfHidden ? "Своё окно: скрыто" : "Своё окно: в кадре";
+  $("strip-self-text").textContent = selfHidden ? I18N.t("Своё окно: скрыто") : I18N.t("Своё окно: в кадре");
   $("strip-self").classList.toggle("is-on", !selfHidden);
 }
 
 // ───────────────────────────────────────────────── горячие клавиши
 
 const HK_NAMES = {
-  toggle: "старт/стоп",
-  stop: "только стоп",
-  pause: "пауза",
-  screenshot: "скриншот",
-  region: "выделить и записать видео",
-  regionShot: "снимок области",
-  library: "библиотека",
-  mic: "микрофон",
-  panel: "панель",
+  toggle: I18N.t("старт/стоп"),
+  stop: I18N.t("только стоп"),
+  pause: I18N.t("пауза"),
+  screenshot: I18N.t("скриншот"),
+  region: I18N.t("выделить и записать видео"),
+  regionShot: I18N.t("снимок области"),
+  library: I18N.t("библиотека"),
+  mic: I18N.t("микрофон"),
+  panel: I18N.t("панель"),
 };
 
 /** Подсказка в отсчёте: какие клавиши сейчас назначены. */
 function countdownHintText() {
   const keys = (state.settings && state.settings.hotkeys) || {};
   const parts = [];
-  if (keys.toggle) parts.push(`${keys.toggle} — старт/стоп`);
-  if (keys.pause) parts.push(`${keys.pause} — пауза`);
-  if (keys.stop) parts.push(`${keys.stop} — стоп`);
-  parts.push("Esc — отмена");
+  if (keys.toggle) parts.push(I18N.t("{0} — старт/стоп", keys.toggle));
+  if (keys.pause) parts.push(I18N.t("{0} — пауза", keys.pause));
+  if (keys.stop) parts.push(I18N.t("{0} — стоп", keys.stop));
+  parts.push(I18N.t("Esc — отмена"));
   return parts.join(" · ");
 }
 
@@ -640,7 +655,7 @@ function renderHotkeys() {
   document.querySelectorAll(".hk").forEach((button) => {
     const name = button.dataset.hk;
     const value = keys[name] || "";
-    button.textContent = value || "не задано";
+    button.textContent = value || I18N.t("не задано");
     button.classList.toggle("is-set", Boolean(value));
     button.classList.toggle("is-empty", !value);
     button.classList.remove("is-capturing");
@@ -692,9 +707,9 @@ function renderPresetKeys() {
     const direct = preset === "region:video" || preset === "region:shot";
     badge.classList.toggle("is-indirect", !direct && preset !== active);
     const what = preset.endsWith(":shot")
-      ? direct ? "снимок области" : "скриншот в выбранном режиме"
-      : direct ? "выделить область и сразу записать" : "старт/стоп записи в выбранном режиме";
-    button.title = `${prettyKey(accelerator)} — ${what}`;
+      ? direct ? I18N.t("снимок области") : I18N.t("скриншот в выбранном режиме")
+      : direct ? I18N.t("выделить область и сразу записать") : I18N.t("старт/стоп записи в выбранном режиме");
+    button.title = I18N.t("{0} — {1}", prettyKey(accelerator), what);
   });
 }
 
@@ -742,11 +757,11 @@ function flashRejectedHotkey(name) {
 
 function hotkeyRejectReason(check) {
   if (check?.reason === "duplicate") {
-    return `уже занято действием «${HK_NAMES[check.owner] || check.owner}» (${check.ownerKey || ""})`;
+    return I18N.t("уже занято действием «{0}» ({1})", HK_NAMES[check.owner] || check.owner, check.ownerKey || "");
   }
-  if (check?.reason === "busy") return "это сочетание держит другая программа";
-  if (check?.reason === "invalid") return check.error || "система не принимает такое сочетание";
-  return check?.error || "проверка не прошла";
+  if (check?.reason === "busy") return I18N.t("это сочетание держит другая программа");
+  if (check?.reason === "invalid") return check.error || I18N.t("система не принимает такое сочетание");
+  return check?.error || I18N.t("проверка не прошла");
 }
 
 function bindHotkeyEditor() {
@@ -758,7 +773,7 @@ function bindHotkeyEditor() {
       capturing = button.dataset.hk;
       button.classList.add("is-capturing");
       button.classList.remove("is-empty");
-      button.textContent = "нажмите клавиши…";
+      button.textContent = I18N.t("нажмите клавиши…");
     });
   });
 
@@ -768,7 +783,7 @@ function bindHotkeyEditor() {
       const hotkeys = { ...(state.settings.hotkeys || {}), [name]: "" };
       await saveSetting({ hotkeys });
       renderHotkeys();
-      toast(`Клавиша «${HK_NAMES[name] || name}» очищена`, "ok");
+      toast(I18N.t("Клавиша «{0}» очищена", HK_NAMES[name] || name), "ok");
     });
   });
 
@@ -785,7 +800,7 @@ function bindHotkeyEditor() {
       }
       const accelerator = acceleratorFromEvent(event);
       if (!accelerator) {
-        toast("Нужен F-ряд или сочетание с Ctrl / Alt / Shift / Win", "error");
+        toast(I18N.t("Нужен F-ряд или сочетание с Ctrl / Alt / Shift / Win"), "error");
         return;
       }
       const name = capturing;
@@ -802,14 +817,14 @@ function bindHotkeyEditor() {
         renderHotkeys();
         flashRejectedHotkey(name);
         uiLog("warn", `клавиша ${accelerator} отклонена: ${hotkeyRejectReason(check)}`, "hotkeys");
-        toast(`«${HK_NAMES[name] || name}» не назначено: ${hotkeyRejectReason(check)}`, "error");
+        toast(I18N.t("«{0}» не назначено: {1}", HK_NAMES[name] || name, hotkeyRejectReason(check)), "error");
         return;
       }
       const hotkeys = { ...(state.settings.hotkeys || {}), [name]: accelerator };
       await saveSetting({ hotkeys });
       renderHotkeys();
       uiLog("info", `клавиша «${HK_NAMES[name] || name}» → ${accelerator}`, "hotkeys");
-      toast(`«${HK_NAMES[name] || name}» → ${accelerator}`, "ok");
+      toast(I18N.t("«{0}» → {1}", HK_NAMES[name] || name, accelerator), "ok");
     },
     true,
   );
@@ -829,7 +844,7 @@ function bindHotkeyEditor() {
       },
     });
     renderHotkeys();
-    toast("Клавиши сброшены: F9 / F8 / F10 / F7 / F6", "ok");
+    toast(I18N.t("Клавиши сброшены: F9 / F8 / F10 / F7 / F6"), "ok");
   });
 }
 
@@ -885,10 +900,10 @@ async function chooseRegion() {
       const reason = picked?.reason || "нет ответа";
       // «busy» и таймаут раньше выглядели одинаково — «Область не выбрана».
       // Теперь по сообщению видно, что именно произошло.
-      if (reason === "busy") toast("Выделение области уже открыто", "error");
+      if (reason === "busy") toast(I18N.t("Выделение области уже открыто"), "error");
       else if (reason === "timeout" || reason === "load-failed") {
-        toast("Оверлей выделения не открылся — попробуйте ещё раз", "error");
-      } else if (reason !== "cancelled") toast("Область не выбрана", "error");
+        toast(I18N.t("Оверлей выделения не открылся — попробуйте ещё раз"), "error");
+      } else if (reason !== "cancelled") toast(I18N.t("Область не выбрана"), "error");
       uiLog(reason === "cancelled" ? "info" : "warn", `выделение области: ${reason}`, "region");
       // Выделение отменили — прогретый захват больше не нужен, отпускаем его.
       clearTimeout(state.prewarmTimer);
@@ -916,7 +931,7 @@ async function chooseRegion() {
     );
     if (screen) state.selected.screen = screen.id;
     renderSources();
-    toast(`Область: ${Math.round(state.region.width)}×${Math.round(state.region.height)}`, "ok");
+    toast(I18N.t("Область: {0}×{1}", Math.round(state.region.width), Math.round(state.region.height)), "ok");
     return true;
   } finally {
     state.busy = false;
@@ -963,11 +978,11 @@ function micMeterReset() {
   const db = $("mic-db");
   if (db) db.textContent = "—";
   const note = $("mic-note");
-  if (note) note.textContent = "голос";
+  if (note) note.textContent = I18N.t("голос");
   const button = $("btn-mic-test");
   if (button) {
     button.classList.remove("is-on");
-    button.textContent = "Тест";
+    button.textContent = I18N.t("Тест");
   }
 }
 
@@ -993,7 +1008,7 @@ function stopMicTest(message) {
 /** Тест микрофона: уровень в реальном времени, автостоп через 20 с. */
 async function startMicTest() {
   if (deviceTest.mic.stream) {
-    stopMicTest("Тест микрофона остановлен");
+    stopMicTest(I18N.t("Тест микрофона остановлен"));
     return false;
   }
   const button = $("btn-mic-test");
@@ -1026,28 +1041,28 @@ async function startMicTest() {
       const fill = $("mic-level-fill");
       if (fill) fill.style.width = `${meterPercent(rms)}%`;
       const db = $("mic-db");
-      if (db) db.textContent = rms > 0.0005 ? `${Math.round(20 * Math.log10(rms))} дБ` : "тихо";
+      if (db) db.textContent = rms > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(rms))) : I18N.t("тихо");
       deviceTest.mic.raf = requestAnimationFrame(tick);
     };
     tick();
     if (button) {
       button.classList.add("is-on");
-      button.textContent = "Стоп";
+      button.textContent = I18N.t("Стоп");
     }
     const note = $("mic-note");
-    if (note) note.textContent = "говорите — полоса должна двигаться";
+    if (note) note.textContent = I18N.t("говорите — полоса должна двигаться");
     // Держать устройство открытым бесконечно нельзя: 20 секунд достаточно, чтобы проверить звук.
     deviceTest.mic.timer = setTimeout(() => {
-      const db = peak > 0.0005 ? `${Math.round(20 * Math.log10(peak))} дБ` : "тишина";
-      stopMicTest(`Тест микрофона закончен, пик ${db}`);
+      const db = peak > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(peak))) : I18N.t("тишина");
+      stopMicTest(I18N.t("Тест микрофона закончен, пик {0}", db));
     }, 20_000);
     uiLog("info", "тест микрофона начат", "audio");
     return true;
   } catch (err) {
     uiLog("warn", `тест микрофона не начался: ${err.message}`, "audio");
-    toast(`Микрофон недоступен: ${err.message}`, "error");
+    toast(I18N.t("Микрофон недоступен: {0}", err.message), "error");
     const note = $("mic-note");
-    if (note) note.textContent = "микрофон недоступен";
+    if (note) note.textContent = I18N.t("микрофон недоступен");
     return false;
   }
 }
@@ -1075,7 +1090,7 @@ function stopCameraTest() {
   const button = $("btn-camera-test");
   if (button) {
     button.classList.remove("is-on");
-    button.textContent = "Проверить";
+    button.textContent = I18N.t("Проверить");
   }
 }
 
@@ -1102,13 +1117,13 @@ async function startCameraTest() {
     if (empty) empty.hidden = true;
     if (button) {
       button.classList.add("is-on");
-      button.textContent = "Стоп";
+      button.textContent = I18N.t("Стоп");
     }
     uiLog("info", "тест камеры начат", "camera");
     return true;
   } catch (err) {
     uiLog("warn", `камера недоступна: ${err.message}`, "camera");
-    toast(`Камера недоступна: ${err.message}`, "error");
+    toast(I18N.t("Камера недоступна: {0}", err.message), "error");
     return false;
   }
 }
@@ -1122,11 +1137,11 @@ async function takeCameraPhoto() {
   }
   const video = $("camera-preview");
   if (!video || !video.videoWidth) {
-    toast("Кадр с камеры ещё не готов", "error");
+    toast(I18N.t("Кадр с камеры ещё не готов"), "error");
     return null;
   }
   const button = $("btn-camera-photo");
-  const original = button?.textContent || "Фото";
+  const original = button?.textContent || I18N.t("Фото");
   if (button) button.disabled = true;
   for (let left = 3; left > 0; left -= 1) {
     if (button) button.textContent = String(left);
@@ -1144,11 +1159,11 @@ async function takeCameraPhoto() {
   if (result?.ok) {
     const name = String(result.path || "").split(/[\\/]/).pop();
     uiLog("info", `фото с камеры: ${name} · ${result.size} Б`, "camera");
-    toast(`Фото с камеры: ${name} · ${formatSize(result.size)}`, "ok");
+    toast(I18N.t("Фото с камеры: {0} · {1}", name, formatSize(result.size)), "ok");
     await renderLibrary();
   } else {
     uiLog("error", `фото с камеры не сохранено: ${describeFailure(result)}`, "camera");
-    toast(`Фото не сохранено: ${describeFailure(result)}`, "error");
+    toast(I18N.t("Фото не сохранено: {0}", describeFailure(result)), "error");
   }
   return result;
 }
@@ -1182,7 +1197,7 @@ async function beginRecording() {
 
   const target = currentTarget();
   if (!target) {
-    toast("Сначала выберите экран или окно", "error");
+    toast(I18N.t("Сначала выберите экран или окно"), "error");
     return;
   }
   if (state.mode === "region" && !state.region) {
@@ -1200,7 +1215,7 @@ async function beginRecording() {
   if (deviceTest.camera.stream) stopCameraTest();
   // Индикация микрофона/системы тоже держит захват экрана — отпускаем до старта.
   await releasePreviewMeters();
-  setRailState("подготовка", "ok");
+  setRailState(I18N.t("подготовка"), "ok");
 
   try {
     if (state.settings.soundOnStart) playBeep();
@@ -1223,7 +1238,7 @@ async function beginRecording() {
     });
     if (!started.ok) {
       uiLog("error", `старт записи отклонён: ${describeFailure(started)}`, "capture");
-      toast(`Не удалось начать запись: ${describeFailure(started)}`, "error");
+      toast(I18N.t("Не удалось начать запись: {0}", describeFailure(started)), "error");
       return;
     }
     state.display = started.display;
@@ -1293,9 +1308,9 @@ async function beginRecording() {
       hint.textContent = info.warnings.join("; ");
       toast(info.warnings.join("; "), "error");
     } else if (isAudio) {
-      hint.textContent = `Пишем звук → ${String(state.settings.audioFormat || "mp3").toUpperCase()}${state.settings.mic ? " + микрофон" : ""}.`;
+      hint.textContent = I18N.t("Пишем звук → {0}{1}.", String(state.settings.audioFormat || "mp3").toUpperCase(), state.settings.mic ? I18N.t(" + микрофон") : "");
     } else {
-      hint.textContent = `Пишем ${info.width}×${info.height}, ${Math.round(info.bitrate / 1000)} кбит/с, ${state.settings.fps} fps.`;
+      hint.textContent = I18N.t("Пишем {0}×{1}, {2} кбит/с, {3} fps.", info.width, info.height, Math.round(info.bitrate / 1000), state.settings.fps);
     }
 
     // Стоп пришёл, пока шёл старт записи: применяем сразу после того, как
@@ -1311,8 +1326,8 @@ async function beginRecording() {
     void window.api.hideFrame();
     state.recording = false;
     setRecordingUi(false);
-    setRailState("ошибка", "");
-    toast(`Запись не началась: ${err.message}`, "error");
+    setRailState(I18N.t("ошибка"), "");
+    toast(I18N.t("Запись не началась: {0}", err.message), "error");
   } finally {
     state.busy = false;
   }
@@ -1327,7 +1342,7 @@ async function endRecording() {
   clearInterval(timerHandle);
   timerHandle = null;
   stopMeters();
-  $("status").textContent = "Сохраняем…";
+  $("status").textContent = I18N.t("Сохраняем…");
 
   let result = null;
   try {
@@ -1335,7 +1350,7 @@ async function endRecording() {
     await recorder.stop();
     // Пока ffmpeg собирает контейнер, панель показывает «Сохраняем…»:
     // на длинной записи перекод занимает секунды.
-    $("status").textContent = "Сохраняем…";
+    $("status").textContent = I18N.t("Сохраняем…");
     setRecState("saving");
     // Передаём реальную длительность записи: main стартует отсчёт раньше
     // (до разрешения на захват и инициализации холста), и проверка «файл
@@ -1351,22 +1366,22 @@ async function endRecording() {
 
     if (!result.ok) {
       setRecState("error");
-      $("status").textContent = "Не сохранено";
+      $("status").textContent = I18N.t("Не сохранено");
       uiLog("error", `файл не сохранён: ${describeFailure(result)}`, "capture");
-      toast(`Файл не сохранён: ${describeFailure(result)}`, "error");
+      toast(I18N.t("Файл не сохранён: {0}", describeFailure(result)), "error");
       return result;
     }
     const name = result.path.split(/[\\/]/).pop();
     // Формат в сообщении — из реального расширения файла, а не жёсткий MP4:
     // при записи «только звук» в WAV тост врал.
     const outExt = (String(result.path || "").split(".").pop() || "").toUpperCase();
-    const extra = result.converted ? ` (перекодировано в ${outExt})` : result.note ? ` — ${result.note}` : "";
+    const extra = result.converted ? I18N.t(" (перекодировано в {0})", outExt) : result.note ? ` — ${result.note}` : "";
     const codeHint = result.code ? ` [${result.code}]` : "";
-    toast(`Сохранено: ${name} · ${formatSize(result.size)} · ${formatClock(recordedMs)}${extra}${codeHint}`, "ok");
+    toast(I18N.t("Сохранено: {0} · {1} · {2}{3}{4}", name, formatSize(result.size), formatClock(recordedMs), extra, codeHint), "ok");
     result.recordedMs = recordedMs;
     renderLibrary();
     void refreshSources();
-    $("cap-hint").textContent = `Последняя запись: ${name}`;
+    $("cap-hint").textContent = I18N.t("Последняя запись: {0}", name);
     return result;
   } catch (err) {
     // Если остановка упала, захват в main остаётся «активным» и все следующие
@@ -1375,9 +1390,9 @@ async function endRecording() {
     await recorder.cancel().catch(() => {});
     setRecordingUi(false);
     setRecState("error");
-    $("status").textContent = "Ошибка";
+    $("status").textContent = I18N.t("Ошибка");
     uiLog("error", `остановка записи упала: ${err.message}`, "capture");
-    toast(`Не удалось сохранить: ${err.message}`, "error");
+    toast(I18N.t("Не удалось сохранить: {0}", err.message), "error");
     return null;
   } finally {
     state.busy = false;
@@ -1417,11 +1432,11 @@ async function takeScreenshot() {
   if (state.recording || state.busy) return;
   const target = currentTarget();
   if (!target) {
-    toast("Сначала выберите экран или окно", "error");
+    toast(I18N.t("Сначала выберите экран или окно"), "error");
     return;
   }
   state.busy = true;
-  setRailState("снимок", "ok");
+  setRailState(I18N.t("снимок"), "ok");
   const restoreProtection = Boolean(state.settings.hideSelf);
   try {
     // Своё окно видно в снимке только со снятой защитой от захвата.
@@ -1430,15 +1445,15 @@ async function takeScreenshot() {
     const format = state.settings.screenshotFormat === "jpg" ? "image/jpeg" : "image/png";
     const dataUrl = await grabStill(target, format);
     const result = await window.api.screenshot({ dataUrl, format: state.settings.screenshotFormat });
-    if (result?.ok) toast(`Скриншот сохранён · ${formatSize(result.size)}`, "ok");
+    if (result?.ok) toast(I18N.t("Скриншот сохранён · {0}", formatSize(result.size)), "ok");
     renderLibrary();
   } catch (err) {
-    toast(`Скриншот не получился: ${err.message}`, "error");
+    toast(I18N.t("Скриншот не получился: {0}", err.message), "error");
   } finally {
     await window.api.arm(null).catch(() => {});
     await window.api.selfProtect(restoreProtection).catch(() => {});
     state.busy = false;
-    setRailState("готов", "ok");
+    setRailState(I18N.t("готов"), "ok");
   }
 }
 
@@ -1449,7 +1464,7 @@ async function takeRegionScreenshot() {
     return;
   }
   state.busy = true;
-  setRailState("снимок", "ok");
+  setRailState(I18N.t("снимок"), "ok");
   // Рамку снимка можно подтвердить повторным нажатием его же клавиши.
   state.shotPending = true;
   const restoreProtection = Boolean(state.settings.hideSelf);
@@ -1462,7 +1477,7 @@ async function takeRegionScreenshot() {
     const screens = state.sources.filter((s) => s.kind === "screen");
     const source =
       screens.find((s) => String(s.displayId) === String(picked.displayId)) || screens[0];
-    if (!source) throw new Error("нет экрана для снимка");
+    if (!source) throw new Error(I18N.t("нет экрана для снимка"));
 
     await window.api.selfProtect(false).catch(() => {});
     await window.api.arm({ sourceId: source.id, kind: "screen", displayId: source.displayId, systemAudio: false });
@@ -1484,8 +1499,8 @@ async function takeRegionScreenshot() {
       await sleep(160);
       const copied = await copyDataUrlToClipboard(dataUrl);
       uiLog("info", `снимок области ${size} → буфер обмена (${copied?.ok ? "ок" : "не удалось"})`, "shot");
-      if (copied?.ok) toast("Снимок области скопирован в буфер обмена", "ok");
-      else toast(`Снимок снят, но в буфер не попал: ${copied?.error || "нет доступа к буферу"}`, "error");
+      if (copied?.ok) toast(I18N.t("Снимок области скопирован в буфер обмена"), "ok");
+      else toast(I18N.t("Снимок снят, но в буфер не попал: {0}", copied?.error || I18N.t("нет доступа к буферу")), "error");
       return;
     }
     uiLog("info", `снимок области: ${size} → редактор`, "shot");
@@ -1493,16 +1508,16 @@ async function takeRegionScreenshot() {
     // этого окно с редактором открывалось бы «за» чужим и его не было видно.
     await window.api.focusWindow().catch(() => {});
     openEditorWithImage({ dataUrl, name: `region-${Date.now()}` });
-    toast("Снимок области открыт — можно разметить, скопировать или сохранить", "ok");
+    toast(I18N.t("Снимок области открыт — можно разметить, скопировать или сохранить"), "ok");
   } catch (err) {
     uiLog("error", `снимок области не получился: ${err.message}`, "shot");
-    toast(`Снимок области не получился: ${err.message}`, "error");
+    toast(I18N.t("Снимок области не получился: {0}", err.message), "error");
   } finally {
     await window.api.arm(null).catch(() => {});
     await window.api.selfProtect(restoreProtection).catch(() => {});
     state.busy = false;
     state.shotPending = false;
-    setRailState("готов", "ok");
+    setRailState(I18N.t("готов"), "ok");
   }
 }
 
@@ -1516,7 +1531,7 @@ function renderRecent(all) {
   if (!rows.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Пока ничего не записано — первая запись появится здесь.";
+    empty.textContent = I18N.t("Пока ничего не записано — первая запись появится здесь.");
     list.appendChild(empty);
     return;
   }
@@ -1539,7 +1554,7 @@ function renderRecent(all) {
 
     const play = document.createElement("button");
     play.className = "icon-action";
-    play.title = row.kind === "audio" ? "Проиграть во внешнем плеере" : "Открыть";
+    play.title = row.kind === "audio" ? I18N.t("Проиграть во внешнем плеере") : I18N.t("Открыть");
     play.innerHTML = ICON.play;
     play.addEventListener("click", () => {
       if (row.kind === "audio") void window.api.open(row.path);
@@ -1548,7 +1563,7 @@ function renderRecent(all) {
 
     const more = document.createElement("button");
     more.className = "icon-action is-more";
-    more.title = "Ещё";
+    more.title = I18N.t("Ещё");
     more.innerHTML = ICON.more;
     more.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1583,12 +1598,12 @@ function openFileMenu(anchor, row) {
   closeFileMenu();
   const actions = [
     row.kind === "audio"
-      ? { label: "Открыть в плеере", icon: ICON.open, run: () => window.api.open(row.path) }
-      : { label: "Открыть в редакторе", icon: ICON.edit, run: () => openEditor(row) },
-    { label: "Показать в папке", icon: ICON.folder, run: () => window.api.reveal(row.path) },
-    { label: "Открыть файл", icon: ICON.open, run: () => window.api.open(row.path) },
+      ? { label: I18N.t("Открыть в плеере"), icon: ICON.open, run: () => window.api.open(row.path) }
+      : { label: I18N.t("Открыть в редакторе"), icon: ICON.edit, run: () => openEditor(row) },
+    { label: I18N.t("Показать в папке"), icon: ICON.folder, run: () => window.api.reveal(row.path) },
+    { label: I18N.t("Открыть файл"), icon: ICON.open, run: () => window.api.open(row.path) },
     { sep: true },
-    { label: "Удалить в корзину", icon: ICON.trash, danger: true, run: () => deleteFile(row) },
+    { label: I18N.t("Удалить в корзину"), icon: ICON.trash, danger: true, run: () => deleteFile(row) },
   ];
 
   const menu = document.createElement("div");
@@ -1642,10 +1657,10 @@ function closeFileMenu() {
 async function deleteFile(row) {
   const result = await window.api.deleteMedia({ filePath: row.path });
   if (result?.ok) {
-    toast(`В корзине: ${row.name}`, "ok");
+    toast(I18N.t("В корзине: {0}", row.name), "ok");
     await renderLibrary();
   } else {
-    toast(`Не удалось удалить: ${result?.error || result?.reason}`, "error");
+    toast(I18N.t("Не удалось удалить: {0}", result?.error || result?.reason), "error");
   }
 }
 
@@ -1659,8 +1674,8 @@ async function renderLibrary() {
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.textContent = all.length
-      ? state.filter === "shot" ? "Снимков пока нет." : state.filter === "audio" ? "Аудиозаписей пока нет." : "Видеозаписей пока нет."
-      : "Пока пусто. Записи и скриншоты появятся здесь.";
+      ? state.filter === "shot" ? I18N.t("Снимков пока нет.") : state.filter === "audio" ? I18N.t("Аудиозаписей пока нет.") : I18N.t("Видеозаписей пока нет.")
+      : I18N.t("Пока пусто. Записи и скриншоты появятся здесь.");
     list.appendChild(empty);
     return;
   }
@@ -1702,7 +1717,7 @@ async function renderLibrary() {
     name.className = "row-name";
     name.textContent = row.name;
     name.style.cursor = "pointer";
-    name.title = row.kind === "audio" ? "Открыть во внешнем плеере" : "Открыть в редакторе";
+    name.title = row.kind === "audio" ? I18N.t("Открыть во внешнем плеере") : I18N.t("Открыть в редакторе");
     name.addEventListener("click", () => {
       if (row.kind === "audio") void window.api.open(row.path);
       else void openEditor(row);
@@ -1717,19 +1732,19 @@ async function renderLibrary() {
 
     const open = document.createElement("button");
     open.className = "ghost";
-    open.textContent = "Открыть";
+    open.textContent = I18N.t("Открыть");
     open.addEventListener("click", () => window.api.open(row.path));
 
     const reveal = document.createElement("button");
     reveal.className = "ghost";
-    reveal.textContent = "В папке";
+    reveal.textContent = I18N.t("В папке");
     reveal.addEventListener("click", () => window.api.reveal(row.path));
 
     actions.append(open, reveal);
     if (row.kind === "video") {
       const cut = document.createElement("button");
       cut.className = "ghost";
-      cut.textContent = "Подрезать";
+      cut.textContent = I18N.t("Подрезать");
       cut.addEventListener("click", () => openEditor(row));
       actions.append(cut);
     }
@@ -1744,7 +1759,7 @@ function paintSelectionBar() {
   const bar = $("list-bar");
   const count = state.selection.size;
   bar.hidden = count === 0;
-  $("list-bar-text").textContent = `выбрано: ${count}`;
+  $("list-bar-text").textContent = I18N.t("выбрано: {0}", count);
   // «Склеить» считает только видео: снимки в склейку не идут.
   const videos = [...state.selection].filter((item) => /\.(mp4|webm|mkv|mov|wmv|f4v|ts)$/i.test(item)).length;
   $("btn-merge").disabled = videos < 2;
@@ -1788,7 +1803,7 @@ function resolveClockAt(clockText, now = new Date()) {
 
 function formatAtLabel(at, tomorrow) {
   const p = (n) => String(n).padStart(2, "0");
-  return `${tomorrow ? "завтра" : "сегодня"}, ${p(at.getHours())}:${p(at.getMinutes())}`;
+  return I18N.t("{0}, {1}:{2}", tomorrow ? I18N.t("завтра") : I18N.t("сегодня"), p(at.getHours()), p(at.getMinutes()));
 }
 
 /** Что произойдёт, если нажать «Запустить по расписанию» с текущими полями. */
@@ -1799,9 +1814,9 @@ function describeScheduleTarget() {
     return { ok: true, at: resolved.at.getTime(), label: formatAtLabel(resolved.at, resolved.tomorrow) };
   }
   const delayMin = Number($("sel-schedelay")?.value) || 0;
-  if (delayMin <= 0) return { ok: false, text: "не задано" };
+  if (delayMin <= 0) return { ok: false, text: I18N.t("не задано") };
   const delayMs = delayMin * 60_000;
-  return { ok: true, at: Date.now() + delayMs, label: `через ${formatDelay(delayMs)}` };
+  return { ok: true, at: Date.now() + delayMs, label: I18N.t("через {0}", formatDelay(delayMs)) };
 }
 
 /** Показывает нужное поле и пересчитывает строку «Старт». */
@@ -1829,10 +1844,10 @@ function cancelSchedule(silent) {
   schedule.at = 0;
   schedule.label = "";
   const stateEl = $("schedule-state");
-  if (stateEl) stateEl.textContent = "не запланировано";
-  if (!state.recording) $("status").textContent = "Готов к записи";
+  if (stateEl) stateEl.textContent = I18N.t("не запланировано");
+  if (!state.recording) $("status").textContent = I18N.t("Готов к записи");
   refreshScheduleTarget();
-  if (!silent) toast("Расписание отменено", "ok");
+  if (!silent) toast(I18N.t("Расписание отменено"), "ok");
 }
 
 /**
@@ -1849,7 +1864,7 @@ function armSchedule(options) {
   if (opts.mode === "clock" || (!opts.mode && opts.clock)) {
     const resolved = resolveClockAt(opts.clock ?? clockFieldValue());
     if (!resolved) {
-      toast("Укажите время старта в формате ЧЧ:ММ", "error");
+      toast(I18N.t("Укажите время старта в формате ЧЧ:ММ"), "error");
       return false;
     }
     at = resolved.at.getTime();
@@ -1857,11 +1872,11 @@ function armSchedule(options) {
   } else {
     const delayMin = Number(opts.delayMin ?? 0) || 0;
     if (delayMin <= 0) {
-      toast("Выберите, через сколько минут начать", "error");
+      toast(I18N.t("Выберите, через сколько минут начать"), "error");
       return false;
     }
     at = Date.now() + delayMin * 60_000;
-    label = `через ${formatDelay(delayMin * 60_000)}`;
+    label = I18N.t("через {0}", formatDelay(delayMin * 60_000));
   }
 
   const delayMs = Math.max(1000, at - Date.now());
@@ -1870,9 +1885,9 @@ function armSchedule(options) {
 
   const paint = () => {
     const left = Math.max(0, schedule.at - Date.now());
-    if ($("schedule-state")) $("schedule-state").textContent = `старт через ${formatDelay(left)}`;
+    if ($("schedule-state")) $("schedule-state").textContent = I18N.t("старт через {0}", formatDelay(left));
     if ($("schedule-at")) $("schedule-at").textContent = label;
-    if (!state.recording) $("status").textContent = `по расписанию через ${formatDelay(left)}`;
+    if (!state.recording) $("status").textContent = I18N.t("по расписанию через {0}", formatDelay(left));
     updateStrip();
   };
   paint();
@@ -1882,7 +1897,7 @@ function armSchedule(options) {
     schedule.startTimer = null;
     clearInterval(schedule.tickTimer);
     schedule.tickTimer = null;
-    if ($("schedule-state")) $("schedule-state").textContent = "запись по расписанию";
+    if ($("schedule-state")) $("schedule-state").textContent = I18N.t("запись по расписанию");
     await beginRecording();
     if (Number(durationMin) > 0) {
       schedule.stopTimer = setTimeout(() => {
@@ -1893,7 +1908,7 @@ function armSchedule(options) {
   }, delayMs);
 
   toast(
-    `Запись начнётся ${label}${durationMin > 0 ? `, длительность ${durationMin} мин` : ""}`,
+    I18N.t("Запись начнётся {0}{1}", label, durationMin > 0 ? I18N.t(", длительность {0} мин", durationMin) : ""),
     "ok",
   );
   return true;
@@ -1903,11 +1918,11 @@ function armSchedule(options) {
 
 async function loadImageFromLibrary(filePath) {
   const response = await window.api.readImage({ filePath });
-  if (!response?.ok) throw new Error(response?.error || response?.reason || "файл не прочитался");
+  if (!response?.ok) throw new Error(response?.error || response?.reason || I18N.t("файл не прочитался"));
   const image = new Image();
   await new Promise((resolve, reject) => {
     image.onload = resolve;
-    image.onerror = () => reject(new Error("формат не читается Chromium"));
+    image.onerror = () => reject(new Error(I18N.t("формат не читается Chromium")));
     image.src = response.dataUrl;
   });
   return image;
@@ -1972,7 +1987,7 @@ function verticalOverlap(topImage, bottomImage, width) {
 async function buildPanorama(paths) {
   const images = [];
   for (const filePath of paths) images.push(await loadImageFromLibrary(filePath));
-  if (!images.length) throw new Error("нет снимков");
+  if (!images.length) throw new Error(I18N.t("нет снимков"));
 
   const width = Math.min(...images.map((image) => image.naturalWidth));
   const heights = images.map((image) => scaledHeight(image, width));
@@ -2028,13 +2043,13 @@ function showPreviewProgress(text) {
   bar.hidden = false;
   bar.classList.add("is-indeterminate");
   const textEl = $("preview-progress-text");
-  if (textEl) textEl.textContent = text || "Готовим предпросмотр…";
-  previewProgressPaint("сборка прокси для проигрывания");
+  if (textEl) textEl.textContent = text || I18N.t("Готовим предпросмотр…");
+  previewProgressPaint(I18N.t("сборка прокси для проигрывания"));
   clearInterval(previewProgress.timer);
   previewProgress.timer = setInterval(() => {
     if (!previewProgress.active || previewProgress.percent > 0) return;
     const elapsed = Date.now() - previewProgress.startedAt;
-    previewProgressPaint(`идёт ${formatDelay(elapsed)} · для длинной записи это нормально`);
+    previewProgressPaint(I18N.t("идёт {0} · для длинной записи это нормально", formatDelay(elapsed)));
   }, 500);
 }
 
@@ -2057,35 +2072,39 @@ function handlePreviewProgress(payload) {
   if (!previewProgress.active) return;
   if (payload.phase === "probe") {
     const textEl = $("preview-progress-text");
-    if (textEl) textEl.textContent = "Читаю длительность записи…";
+    if (textEl) textEl.textContent = I18N.t("Читаю длительность записи…");
     previewProgressPaint("ffprobe");
     return;
   }
   if (payload.phase === "encode") {
     const textEl = $("preview-progress-text");
-    if (textEl) textEl.textContent = "Перекодирую в H.264 для проигрывания…";
+    if (textEl) textEl.textContent = I18N.t("Перекодирую в H.264 для проигрывания…");
     if (Number(payload.durationSec) > 0) previewProgress.durationSec = Number(payload.durationSec);
     if (Number(payload.percent) > 0) previewProgress.percent = Math.min(100, Math.round(payload.percent));
     let note = "";
     if (previewProgress.percent > 0 && previewProgress.durationSec > 0) {
       const elapsed = Date.now() - previewProgress.startedAt;
       const eta = elapsed * ((100 - previewProgress.percent) / previewProgress.percent);
-      note =
-        `${previewProgress.percent}% · обработано ${formatDelay(previewProgress.durationSec * 1000 * (previewProgress.percent / 100))}` +
-        ` из ${formatDelay(previewProgress.durationSec * 1000)} · осталось ~${formatDelay(eta)}`;
+      note = I18N.t(
+        "{0}% · обработано {1} из {2} · осталось ~{3}",
+        previewProgress.percent,
+        formatDelay(previewProgress.durationSec * 1000 * (previewProgress.percent / 100)),
+        formatDelay(previewProgress.durationSec * 1000),
+        formatDelay(eta),
+      );
     }
     previewProgressPaint(note);
     return;
   }
   if (payload.phase === "error") {
     const textEl = $("preview-progress-text");
-    if (textEl) textEl.textContent = `Предпросмотр не собрался: ${payload.error || "ошибка ffmpeg"}`;
+    if (textEl) textEl.textContent = I18N.t("Предпросмотр не собрался: {0}", payload.error || I18N.t("ошибка ffmpeg"));
     previewProgressPaint("");
     return;
   }
   if (payload.phase === "done") {
     previewProgress.percent = 100;
-    previewProgressPaint(payload.cached ? "готовый прокси уже был в кэше" : "готово");
+    previewProgressPaint(payload.cached ? I18N.t("готовый прокси уже был в кэше") : I18N.t("готово"));
   }
 }
 
@@ -2146,7 +2165,7 @@ async function openEditor(row) {
     $("markup-bar").hidden = false;
     $("editor-time").textContent = "—";
     const formatLabel = row.path ? row.name.split(".").pop().toUpperCase() : "PNG";
-    $("editor-sel").textContent = `${formatLabel} · разметка`;
+    $("editor-sel").textContent = I18N.t("{0} · разметка", formatLabel);
     await loadShotIntoCanvas(row);
     return;
   }
@@ -2159,7 +2178,7 @@ async function openEditor(row) {
 
   // Chromium не играет H.264 в MKV — для таких файлов main соберёт прокси.
   const needsProxy = !/\.(mp4|webm|mov)$/i.test(row.name);
-  if (needsProxy) showPreviewProgress("Готовим предпросмотр…");
+  if (needsProxy) showPreviewProgress(I18N.t("Готовим предпросмотр…"));
   let preview = null;
   try {
     preview = await window.api.previewVideo({ filePath: row.path });
@@ -2171,7 +2190,7 @@ async function openEditor(row) {
   // Редактор могли закрыть или открыть на другом файле, пока строился прокси.
   if (editor.row !== row) return;
   if (!preview?.ok) {
-    toast(`Предпросмотр недоступен: ${describeFailure(preview)}`, "error");
+    toast(I18N.t("Предпросмотр недоступен: {0}", describeFailure(preview)), "error");
     return;
   }
   if (preview.note) {
@@ -2195,7 +2214,7 @@ function paintPlayButton() {
   const video = $("editor-video");
   if (!button || !video) return;
   const playing = !video.paused && !video.ended;
-  button.textContent = playing ? "Пауза" : "Играть";
+  button.textContent = playing ? I18N.t("Пауза") : I18N.t("Играть");
 }
 
 /** Воспроизведение/пауза — общая точка для кнопки и пробела. */
@@ -2243,7 +2262,7 @@ async function toggleEditorFullscreen() {
     if (document.fullscreenElement) await document.exitFullscreen();
     else await card.requestFullscreen();
   } catch (err) {
-    toast(`Полный экран недоступен: ${err.message}`, "error");
+    toast(I18N.t("Полный экран недоступен: {0}", err.message), "error");
   }
 }
 
@@ -2252,7 +2271,7 @@ function paintEditorFullscreen() {
   const label = $("editor-fullscreen-label");
   const button = $("editor-fullscreen");
   const on = Boolean(document.fullscreenElement);
-  if (label) label.textContent = on ? "Свернуть" : "Во весь экран";
+  if (label) label.textContent = on ? I18N.t("Свернуть") : I18N.t("Во весь экран");
   if (button) button.classList.toggle("is-on", on);
 }
 
@@ -2271,8 +2290,8 @@ function editorPaint() {
   $("tl-playhead").style.left = `${Math.min(100, (current / duration) * 100)}%`;
 
   $("editor-time").textContent = `${formatClock(current * 1000)} / ${formatClock(editor.duration * 1000)}`;
-  $("editor-sel").textContent = `вырез ${formatClock(Math.max(0, (editor.outSec - editor.inSec) * 1000))}`;
-  $("editor-play").textContent = video.paused ? "Играть" : "Пауза";
+  $("editor-sel").textContent = I18N.t("вырез {0}", formatClock(Math.max(0, (editor.outSec - editor.inSec) * 1000)));
+  $("editor-play").textContent = video.paused ? I18N.t("Играть") : I18N.t("Пауза");
 }
 
 /**
@@ -2338,7 +2357,7 @@ async function loadShotIntoCanvas(row) {
   if (!dataUrl) {
     const response = await window.api.readImage({ filePath: row.path });
     if (!response?.ok) {
-      toast(`Не удалось открыть изображение: ${response?.error || response?.reason}`, "error");
+      toast(I18N.t("Не удалось открыть изображение: {0}", response?.error || response?.reason), "error");
       return;
     }
     dataUrl = response.dataUrl;
@@ -2348,11 +2367,11 @@ async function loadShotIntoCanvas(row) {
   try {
     await new Promise((resolve, reject) => {
       image.onload = resolve;
-      image.onerror = () => reject(new Error("формат не читается Chromium"));
+      image.onerror = () => reject(new Error(I18N.t("формат не читается Chromium")));
       image.src = dataUrl;
     });
   } catch (err) {
-    toast(`Картинка не открылась: ${err.message}. Для TIFF/BMP используйте «Открыть».`, "error");
+    toast(I18N.t("Картинка не открылась: {0}. Для TIFF/BMP используйте «Открыть».", err.message), "error");
     return;
   }
 
@@ -2449,7 +2468,7 @@ function startTextInput(event) {
   input.className = "markup-text-input";
   input.style.left = `${event.clientX}px`;
   input.style.top = `${event.clientY}px`;
-  input.placeholder = "текст, Enter — вставить";
+  input.placeholder = I18N.t("текст, Enter — вставить");
   document.body.appendChild(input);
   input.focus();
 
@@ -2495,7 +2514,7 @@ async function copyDataUrlToClipboard(dataUrl) {
     const image = new Image();
     await new Promise((resolve, reject) => {
       image.onload = resolve;
-      image.onerror = () => reject(new Error("картинка не прочиталась"));
+      image.onerror = () => reject(new Error(I18N.t("картинка не прочиталась")));
       image.src = dataUrl;
     });
     const canvas = document.createElement("canvas");
@@ -2516,7 +2535,7 @@ async function copyCanvasToClipboard(canvas) {
       await navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]);
       return { ok: true, via: "navigator.clipboard" };
     }
-    errors.push("navigator.clipboard недоступен");
+    errors.push(I18N.t("navigator.clipboard недоступен"));
   } catch (err) {
     errors.push(`clipboard: ${err.message || err}`);
   }
@@ -2536,7 +2555,7 @@ async function copyCanvasToClipboard(canvas) {
     selection.removeAllRanges();
     img.remove();
     if (ok) return { ok: true, via: "execCommand" };
-    errors.push("execCommand copy отклонён");
+    errors.push(I18N.t("execCommand copy отклонён"));
   } catch (err) {
     errors.push(`execCommand: ${err.message || err}`);
   }
@@ -2580,9 +2599,9 @@ function bindMarkup() {
     if (result?.ok) {
       closeEditor();
       void renderLibrary();
-      toast("Изображение скопировано в буфер обмена", "ok");
+      toast(I18N.t("Изображение скопировано в буфер обмена"), "ok");
     } else {
-      toast(`Не удалось скопировать: ${result?.error || result?.reason}`, "error");
+      toast(I18N.t("Не удалось скопировать: {0}", result?.error || result?.reason), "error");
     }
   });
 
@@ -2595,10 +2614,10 @@ function bindMarkup() {
       const name = result.path.split(/[\\/]/).pop();
       closeEditor();
       await renderLibrary();
-      toast(`Сохранено: ${name} · ${formatSize(result.size)}`, "ok");
+      toast(I18N.t("Сохранено: {0} · {1}", name, formatSize(result.size)), "ok");
     } else {
       uiLog("error", `разметка не сохранена: ${describeFailure(result)}`, "editor");
-      toast(`Не удалось сохранить: ${describeFailure(result)}`, "error");
+      toast(I18N.t("Не удалось сохранить: {0}", describeFailure(result)), "error");
     }
   });
 
@@ -2747,25 +2766,25 @@ function bindEditor() {
     if (!editor.row || editor.busy || editor.row.kind !== "video") return;
     const speed = Number($("editor-speed").value);
     if (speed === 1) {
-      toast("Скорость 1× — менять нечего", "error");
+      toast(I18N.t("Скорость 1× — менять нечего"), "error");
       return;
     }
     const button = $("editor-speed-apply");
     editor.busy = true;
-    button.textContent = "Меняю…";
+    button.textContent = I18N.t("Меняю…");
     try {
       const result = await window.api.speedMedia({ filePath: editor.row.path, speed });
       if (result?.ok) {
         const name = result.path.split(/[\\/]/).pop();
-        toast(`Скорость ${speed}×: ${name} · ${formatSize(result.size)}`, "ok");
+        toast(I18N.t("Скорость {0}×: {1} · {2}", speed, name, formatSize(result.size)), "ok");
         closeEditor();
         await renderLibrary();
       } else {
-        toast(`Не удалось изменить скорость: ${result?.error || result?.reason}`, "error");
+        toast(I18N.t("Не удалось изменить скорость: {0}", result?.error || result?.reason), "error");
       }
     } finally {
       editor.busy = false;
-      button.textContent = "Применить скорость";
+      button.textContent = I18N.t("Применить скорость");
     }
   });
 
@@ -2777,8 +2796,8 @@ function bindEditor() {
         filePath: editor.row.path,
         atSec: Number($("editor-video").currentTime) || 0,
       });
-      if (result?.ok) toast(`Кадр сохранён · ${formatSize(result.size)}`, "ok");
-      else toast(`Кадр не сохранён: ${result?.error || result?.reason}`, "error");
+      if (result?.ok) toast(I18N.t("Кадр сохранён · {0}", formatSize(result.size)), "ok");
+      else toast(I18N.t("Кадр не сохранён: {0}", result?.error || result?.reason), "error");
       await renderLibrary();
     } finally {
       editor.busy = false;
@@ -2791,11 +2810,11 @@ function bindEditor() {
     try {
       const result = await window.api.deleteMedia({ filePath: editor.row.path });
       if (result?.ok) {
-        toast("Файл перемещён в корзину", "ok");
+        toast(I18N.t("Файл перемещён в корзину"), "ok");
         closeEditor();
         await renderLibrary();
       } else {
-        toast(`Не удалось удалить: ${result?.error}`, "error");
+        toast(I18N.t("Не удалось удалить: {0}", result?.error), "error");
       }
     } finally {
       editor.busy = false;
@@ -2806,7 +2825,7 @@ function bindEditor() {
     if (!editor.row || editor.busy) return;
     const label = $("editor-trim-label");
     editor.busy = true;
-    label.textContent = "Режу…";
+    label.textContent = I18N.t("Режу…");
     try {
       const result = await window.api.trimMedia({
         filePath: editor.row.path,
@@ -2816,15 +2835,15 @@ function bindEditor() {
       });
       if (result?.ok) {
         const name = result.path.split(/[\\/]/).pop();
-        toast(`Фрагмент сохранён: ${name} · ${formatSize(result.size)} · ${formatClock(result.durationSec * 1000)}`, "ok");
+        toast(I18N.t("Фрагмент сохранён: {0} · {1} · {2}", name, formatSize(result.size), formatClock(result.durationSec * 1000)), "ok");
         closeEditor();
         await renderLibrary();
       } else {
-        toast(`Не удалось подрезать: ${result?.error || result?.reason}`, "error");
+        toast(I18N.t("Не удалось подрезать: {0}", result?.error || result?.reason), "error");
       }
     } finally {
       editor.busy = false;
-      label.textContent = "Подрезать";
+      label.textContent = I18N.t("Подрезать");
     }
   });
 }
@@ -2834,18 +2853,18 @@ function bindEditor() {
 /** Очистка библиотеки: одна кнопка на главной, в истории и в компактном окне. */
 async function clearLibraryUi() {
   const confirmed = window.confirm(
-    "Удалить все записи, снимки и звук из папки библиотеки?\nДействие необратимо.",
+    I18N.t("Удалить все записи, снимки и звук из папки библиотеки?\nДействие необратимо."),
   );
   if (!confirmed) return;
   const result = await window.api.clearLibrary();
   if (result?.ok) {
     uiLog("info", `библиотека очищена: ${result.removed} файлов`, "library");
-    toast(`Очищено: ${result.removed} файлов · ${formatSize(result.freed)}`, "ok");
+    toast(I18N.t("Очищено: {0} файлов · {1}", result.removed, formatSize(result.freed)), "ok");
     state.selection.clear();
     await renderLibrary();
     renderRecent(true);
   } else {
-    toast("Очистить библиотеку не удалось", "error");
+    toast(I18N.t("Очистить библиотеку не удалось"), "error");
   }
 }
 
@@ -2883,28 +2902,28 @@ function renderMini() {
   if (meta) {
     meta.textContent = recording
       ? recorder.paused
-        ? "пауза"
-        : "запись"
+        ? I18N.t("пауза")
+        : I18N.t("запись")
       : state.busy
-        ? "подготовка"
-        : "готов";
+        ? I18N.t("подготовка")
+        : I18N.t("готов");
   }
   const primary = $("mini-primary");
   if (primary) primary.classList.toggle("live", recording);
   const label = $("mini-primary-label");
-  if (label) label.textContent = recording ? "Стоп" : state.action === "shot" ? "Снимок" : "Записать";
+  if (label) label.textContent = recording ? I18N.t("Стоп") : state.action === "shot" ? I18N.t("Снимок") : I18N.t("Записать");
   const mode = $("mini-mode");
   if (mode) {
     mode.textContent =
       {
-        "screen:video": "Весь экран",
-        "window:video": "Окно",
-        "region:video": "Область",
-        "audio:video": "Только звук",
-        "screen:shot": "Снимок экрана",
-        "window:shot": "Снимок окна",
-        "region:shot": "Снимок области",
-      }[`${state.mode}:${state.action}`] || "Экран";
+        "screen:video": I18N.t("Весь экран"),
+        "window:video": I18N.t("Окно"),
+        "region:video": I18N.t("Область"),
+        "audio:video": I18N.t("Только звук"),
+        "screen:shot": I18N.t("Снимок экрана"),
+        "window:shot": I18N.t("Снимок окна"),
+        "region:shot": I18N.t("Снимок области"),
+      }[`${state.mode}:${state.action}`] || I18N.t("Экран");
   }
   const micButton = $("mini-mic");
   if (micButton) micButton.classList.toggle("on", Boolean(settings.mic));
@@ -2985,7 +3004,7 @@ const SWITCHES = {
 };
 
 function buildCodecSelect(select, allowed, labels, current) {
-  const options = [["auto", "как у контейнера"]].concat(allowed.map((key) => [key, labels[key] ?? key]));
+  const options = [["auto", I18N.t("как у контейнера")]].concat(allowed.map((key) => [key, labels[key] ?? key]));
   select.innerHTML = options
     .map(([value, label]) => `<option value="${value}">${label}</option>`)
     .join("");
@@ -3029,7 +3048,7 @@ function renderWatermarkPreview() {
   const fontPx = Math.max(8, Math.min(48, Math.round(size * scale)));
   const marginPx = Math.max(2, Math.round(margin * scale));
 
-  label.textContent = s.watermarkImage ? "PNG" : String(s.watermarkText || "").trim() || "водяной знак";
+  label.textContent = s.watermarkImage ? "PNG" : String(s.watermarkText || "").trim() || I18N.t("водяной знак");
   label.style.fontSize = `${fontPx}px`;
   label.style.color = `rgba(255, 255, 255, ${opacity.toFixed(2)})`;
   label.style.textShadow = s.watermarkShadow === false ? "none" : "1px 1px 2px rgba(0, 0, 0, 0.6)";
@@ -3097,19 +3116,19 @@ async function renderAudioDevices() {
       .forEach((device, index) => {
         const option = document.createElement("option");
         option.value = device.deviceId;
-        const name = device.label || `${kind === "audioinput" ? "Вход" : "Выход"} ${index + 1}`;
-        option.textContent = device.deviceId === "default" ? `${name} (по умолчанию)` : name;
+        const name = device.label || I18N.t("{0} {1}", kind === "audioinput" ? I18N.t("Вход") : I18N.t("Выход"), index + 1);
+        option.textContent = device.deviceId === "default" ? I18N.t("{0} (по умолчанию)", name) : name;
         select.appendChild(option);
       });
     select.value = [...select.options].some((option) => option.value === current) ? current : "";
   };
 
-  fill(micSelect, "audioinput", state.settings?.micDeviceId || "", "Системный по умолчанию");
-  fill(outSelect, "audiooutput", state.settings?.outDeviceId || "", "Системное устройство по умолчанию");
+  fill(micSelect, "audioinput", state.settings?.micDeviceId || "", I18N.t("Системный по умолчанию"));
+  fill(outSelect, "audiooutput", state.settings?.outDeviceId || "", I18N.t("Системное устройство по умолчанию"));
   // Источник звука компьютера на главной: Windows или один из входов (интерфейс, кабель).
   if (sysSelect) {
-    fill(sysSelect, "audioinput", systemSourceId(), "Звук Windows");
-    sysSelect.title = `Источник звука компьютера: ${sysSelect.selectedOptions[0]?.textContent || "Звук Windows"}`;
+    fill(sysSelect, "audioinput", systemSourceId(), I18N.t("Звук Windows"));
+    sysSelect.title = I18N.t("Источник звука компьютера: {0}", sysSelect.selectedOptions[0]?.textContent || I18N.t("Звук Windows"));
   }
 }
 
@@ -3137,6 +3156,7 @@ function applySettingsToUi() {
   refreshCodecOptions();
   $("sel-autostop").value = String(s.autostopMin ?? 0);
   $("sel-panelStyle").value = s.panelStyle || "full";
+  setSelectValue($("sel-language"), s.language || "auto");
   // Водяной знак: поля раздела и схематичное превью.
   const wmText = $("inp-wm-text");
   if (wmText && wmText.value !== (s.watermarkText || "")) wmText.value = s.watermarkText || "";
@@ -3147,7 +3167,7 @@ function applySettingsToUi() {
   const wmImage = String(s.watermarkImage || "");
   const wmImageLabel = $("wm-image-label");
   if (wmImageLabel) {
-    wmImageLabel.textContent = wmImage ? wmImage.split(/[\\/]/).pop() : "не выбрана";
+    wmImageLabel.textContent = wmImage ? wmImage.split(/[\\/]/).pop() : I18N.t("не выбрана");
     wmImageLabel.title = wmImage;
   }
   renderWatermarkPreview();
@@ -3157,8 +3177,8 @@ function applySettingsToUi() {
   }
   $("dir-video").textContent = state.info?.outputDir || "—";
   $("dir-shots").textContent = state.info?.outputDirShots || state.info?.outputDir || "—";
-  $("audio-mic").textContent = s.mic ? "вкл" : "выкл";
-  $("audio-system").textContent = s.systemAudio ? "вкл" : "выкл";
+  $("audio-mic").textContent = s.mic ? I18N.t("вкл") : I18N.t("выкл");
+  $("audio-system").textContent = s.systemAudio ? I18N.t("вкл") : I18N.t("выкл");
   const keys = s.hotkeys || {};
   $("key-toggle") && ($("key-toggle").value = keys.toggle || "");
   renderHotkeys();
@@ -3171,7 +3191,7 @@ async function saveSetting(patch) {
   if (next) delete next.hotkeyErrors;
   state.settings = next;
   if (Array.isArray(hotkeyErrors) && hotkeyErrors.length) {
-    toast(`Горячие клавиши не назначены: ${hotkeyErrors.join("; ")}`, "error");
+    toast(I18N.t("Горячие клавиши не назначены: {0}", hotkeyErrors.join("; ")), "error");
   }
   applySettingsToUi();
 }
@@ -3181,18 +3201,19 @@ async function renderInfo() {
   $("brand-ver").textContent = `v${info.version}`;
   $("settings-note").textContent = info.outputDir;
   $("codec-note").textContent = info.ffmpeg
-    ? "Chromium пишет MP4 (H.264 + AAC) напрямую. «Как пишет Chromium» оставляет файл как есть; любой другой контейнер собирается ffmpeg при остановке записи."
-    : "ffmpeg не найден: запись идёт в том виде, который даёт Chromium (MP4 или WebM), перекод в другие контейнеры недоступен.";
+    ? I18N.t("Chromium пишет MP4 (H.264 + AAC) напрямую. «Как пишет Chromium» оставляет файл как есть; любой другой контейнер собирается ffmpeg при остановке записи.")
+    : I18N.t("ffmpeg не найден: запись идёт в том виде, который даёт Chromium (MP4 или WebM), перекод в другие контейнеры недоступен.");
   $("about-version").textContent = `${info.name} ${info.version}`;
   $("about-runtime").textContent = `${info.electron} / ${info.chrome} / ${info.node}`;
   $("about-ffmpeg").textContent = info.ffmpeg
-    ? info.ffmpegSource === "auto" ? "скачан автоматически" : "найден в PATH"
-    : "не найден";
+    ? info.ffmpegSource === "auto" ? I18N.t("скачан автоматически") : I18N.t("найден в PATH")
+    : I18N.t("не найден");
   $("about-settings").textContent = info.settingsPath || "—";
   if ($("about-build")) {
     const stamp = info.buildTime ? new Date(info.buildTime) : null;
+    const loc = I18N.getLang() === "en" ? "en-US" : "ru-RU";
     $("about-build").textContent = stamp
-      ? `${stamp.toLocaleDateString("ru-RU")} ${stamp.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
+      ? `${stamp.toLocaleDateString(loc)} ${stamp.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}`
       : "—";
   }
   if ($("about-path")) $("about-path").textContent = info.appPath || "—";
@@ -3231,14 +3252,14 @@ function renderHelp() {
     const card = document.createElement("div");
     card.className = "help-card";
     const title = document.createElement("h4");
-    title.textContent = group;
+    title.textContent = I18N.t(group);
     const dl = document.createElement("dl");
     for (const [name, label, inGroup] of HELP_ACTIONS) {
       if (inGroup !== group) continue;
       const dt = document.createElement("dt");
-      dt.textContent = label;
+      dt.textContent = I18N.t(label);
       const dd = document.createElement("dd");
-      dd.textContent = keys[name] || "не задана";
+      dd.textContent = keys[name] || I18N.t("не задана");
       if (!keys[name]) dd.classList.add("is-empty");
       dl.append(dt, dd);
     }
@@ -3337,7 +3358,7 @@ function bindEvents() {
     const next = order[(order.indexOf(current) + 1) % order.length];
     void saveSetting({ autostopMin: next }).then(() => {
       $("sel-autostop").value = String(next);
-      toast(next ? `Авто-остановка через ${next} мин` : "Авто-остановка выключена", "ok");
+      toast(next ? I18N.t("Авто-остановка через {0} мин", next) : I18N.t("Авто-остановка выключена"), "ok");
     });
   });
   $("strip-schedule").addEventListener("click", () => {
@@ -3355,7 +3376,7 @@ function bindEvents() {
     await saveSetting({ hideSelf: hide });
     await window.api.setContentProtection(hide).catch(() => {});
     updateStrip();
-    toast(hide ? "Своё окно не попадает в запись" : "Своё окно попадает в запись", "ok");
+    toast(hide ? I18N.t("Своё окно не попадает в запись") : I18N.t("Своё окно попадает в запись"), "ok");
   });
   $("strip-history").addEventListener("click", () => showView("library"));
   document.querySelectorAll("[data-back]").forEach((button) => {
@@ -3372,19 +3393,19 @@ function bindEvents() {
 
   $("btn-open-log").addEventListener("click", async () => {
     const result = await window.api.openLogDir();
-    if (!result?.ok) toast("Папка логов ещё не создана — начните запись", "error");
+    if (!result?.ok) toast(I18N.t("Папка логов ещё не создана — начните запись"), "error");
   });
   $("btn-copy-log").addEventListener("click", async () => {
     const lines = await window.api.logTail(120);
     if (!Array.isArray(lines) || !lines.length) {
-      toast("Лог пока пуст", "error");
+      toast(I18N.t("Лог пока пуст"), "error");
       return;
     }
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      toast(`Скопировано строк лога: ${lines.length}`, "ok");
+      toast(I18N.t("Скопировано строк лога: {0}", lines.length), "ok");
     } catch (err) {
-      toast(`Не удалось скопировать: ${err.message}`, "error");
+      toast(I18N.t("Не удалось скопировать: {0}", err.message), "error");
     }
   });
 
@@ -3404,7 +3425,7 @@ function bindEvents() {
           renderMini();
         }
         if (key === "watermarkOn" && value && !state.settings.watermarkText && !state.settings.watermarkImage) {
-          toast("Задайте текст или PNG — иначе накладывать нечего", "error");
+          toast(I18N.t("Задайте текст или PNG — иначе накладывать нечего"), "error");
         }
       });
     });
@@ -3432,31 +3453,31 @@ function bindEvents() {
   }
   $("sel-sysource").addEventListener("change", (e) => {
     const label = e.target.selectedOptions[0]?.textContent || "Windows";
-    e.target.title = `Источник звука компьютера: ${label}`;
+    e.target.title = I18N.t("Источник звука компьютера: {0}", label);
     void saveSetting({ systemSourceId: e.target.value }).then(() => {
       // Индикация и сам захват перестраиваются под новый источник.
       stopPreviewSystem();
       syncPreviewMeters();
       toast(
         e.target.value
-          ? `Звук компьютера: ${label}. Направьте на этот вход звук из программы (например, из DAW).`
-          : "Звук компьютера: весь системный звук Windows",
+          ? I18N.t("Звук компьютера: {0}. Направьте на этот вход звук из программы (например, из DAW).", label)
+          : I18N.t("Звук компьютера: весь системный звук Windows"),
         "ok",
       );
     });
   });
   $("sel-micdevice").addEventListener("change", (e) => {
     void saveSetting({ micDeviceId: e.target.value });
-    const label = e.target.selectedOptions[0]?.textContent || "по умолчанию";
-    toast(`Аудиовход: ${label}`, "ok");
+    const label = e.target.selectedOptions[0]?.textContent || I18N.t("по умолчанию");
+    toast(I18N.t("Аудиовход: {0}", label), "ok");
   });
   $("sel-outdevice").addEventListener("change", (e) => {
     void saveSetting({ outDeviceId: e.target.value });
-    const label = e.target.selectedOptions[0]?.textContent || "по умолчанию";
+    const label = e.target.selectedOptions[0]?.textContent || I18N.t("по умолчанию");
     toast(
       e.target.value
-        ? `Выбран выход: ${label}. Системный звук идёт с устройства по умолчанию — переключите его в Windows, чтобы писать с этого.`
-        : "Системный звук: устройство вывода по умолчанию",
+        ? I18N.t("Выбран выход: {0}. Системный звук идёт с устройства по умолчанию — переключите его в Windows, чтобы писать с этого.", label)
+        : I18N.t("Системный звук: устройство вывода по умолчанию"),
       "ok",
     );
   });
@@ -3490,12 +3511,12 @@ function bindEvents() {
     const picked = await window.api.chooseImage(state.settings.watermarkImage || "");
     if (!picked) return;
     await saveSetting({ watermarkImage: picked });
-    toast(`Водяной знак: ${picked.split(/[\\/]/).pop()}`, "ok");
+    toast(I18N.t("Водяной знак: {0}", picked.split(/[\\/]/).pop()), "ok");
   });
   $("btn-wm-image-clear").addEventListener("click", async () => {
     if (!state.settings.watermarkImage) return;
     await saveSetting({ watermarkImage: "" });
-    toast("Картинка водяного знака убрана", "ok");
+    toast(I18N.t("Картинка водяного знака убрана"), "ok");
   });
 
   $("btn-recent-all").addEventListener("click", () => showView("library"));
@@ -3515,7 +3536,7 @@ function bindEvents() {
     }
     const delayMin = Number($("sel-schedelay").value) || 0;
     if (delayMin <= 0) {
-      toast("Выберите, через сколько минут начать, или переключитесь на «в точное время»", "error");
+      toast(I18N.t("Выберите, через сколько минут начать, или переключитесь на «в точное время»"), "error");
       return;
     }
     armSchedule({ delayMin, durationMin });
@@ -3535,7 +3556,7 @@ function bindEvents() {
       .sort((a, b) => a.mtime - b.mtime)
       .map((row) => row.path);
     const button = $("btn-panorama");
-    button.textContent = "Собираю…";
+    button.textContent = I18N.t("Собираю…");
     button.disabled = true;
     try {
       const panorama = await buildPanorama(ordered);
@@ -3546,18 +3567,18 @@ function bindEvents() {
       });
       if (result?.ok) {
         toast(
-          `Панорама ${panorama.width}×${panorama.height} · перекрытия ${panorama.overlaps.join("/")} px · ${formatSize(result.size)}`,
+          I18N.t("Панорама {0}×{1} · перекрытия {2} px · {3}", panorama.width, panorama.height, panorama.overlaps.join("/"), formatSize(result.size)),
           "ok",
         );
         state.selection.clear();
         await renderLibrary();
       } else {
-        toast(`Панорама не сохранена: ${result?.error || result?.reason}`, "error");
+        toast(I18N.t("Панорама не сохранена: {0}", result?.error || result?.reason), "error");
       }
     } catch (err) {
-      toast(`Панорама не собралась: ${err.message}`, "error");
+      toast(I18N.t("Панорама не собралась: {0}", err.message), "error");
     } finally {
-      button.textContent = "Панорама";
+      button.textContent = I18N.t("Панорама");
       paintSelectionBar();
     }
   });
@@ -3571,25 +3592,27 @@ function bindEvents() {
       .sort((a, b) => a.mtime - b.mtime)
       .map((row) => row.path);
     const button = $("btn-merge");
-    button.textContent = "Склеиваю…";
+    button.textContent = I18N.t("Склеиваю…");
     button.disabled = true;
     try {
       const result = await window.api.mergeMedia({ paths });
       if (result?.ok) {
         const name = result.path.split(/[\\/]/).pop();
-        toast(`Склеено ${result.merged} файлов: ${name} · ${formatSize(result.size)}${result.audio ? "" : " · без звука"}`, "ok");
+        toast(I18N.t("Склеено {0} файлов: {1} · {2}{3}", result.merged, name, formatSize(result.size), result.audio ? "" : I18N.t(" · без звука")), "ok");
         state.selection.clear();
         await renderLibrary();
       } else {
-        toast(`Склейка не удалась: ${result?.error || result?.reason}`, "error");
+        toast(I18N.t("Склейка не удалась: {0}", result?.error || result?.reason), "error");
       }
     } finally {
-      button.textContent = "Склеить выбранные";
+      button.textContent = I18N.t("Склеить выбранные");
       paintSelectionBar();
     }
   });
   $("sel-autostop").addEventListener("change", (e) => void saveSetting({ autostopMin: Number(e.target.value) }));
   $("sel-panelStyle").addEventListener("change", (e) => void saveSetting({ panelStyle: e.target.value }));
+  // Окна перерисовывает событие lang:changed от main: оно приходит всем окнам сразу.
+  $("sel-language")?.addEventListener("change", (e) => void saveSetting({ language: e.target.value }));
 
   document.querySelectorAll(".snav").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -3680,11 +3703,11 @@ function bindEvents() {
       showView("library");
     } else if (kind === "mic") {
       void saveSetting({ mic: !state.settings.mic }).then(() => {
-        toast(`Микрофон: ${state.settings.mic ? "вкл" : "выкл"}`, "ok");
+        toast(I18N.t("Микрофон: {0}", state.settings.mic ? I18N.t("вкл") : I18N.t("выкл")), "ok");
       });
     } else if (kind === "panel") {
       void saveSetting({ showPanel: !state.settings.showPanel }).then(() => {
-        toast(`Плавающая панель: ${state.settings.showPanel ? "вкл" : "выкл"}`, "ok");
+        toast(I18N.t("Плавающая панель: {0}", state.settings.showPanel ? I18N.t("вкл") : I18N.t("выкл")), "ok");
       });
     }
   });
@@ -3707,21 +3730,21 @@ function bindEvents() {
   window.api.onFfmpegState?.((event) => {
     if (state.recording) return; // запись важнее подсказок о загрузке
     if (event.phase === "start") {
-      toast("ffmpeg не найден — скачиваю автоматически, это один раз (~100 МБ)");
-      $("cap-hint").textContent = "Скачиваю ffmpeg… он нужен для MKV, GIF, склейки и обрезки";
+      toast(I18N.t("ffmpeg не найден — скачиваю автоматически, это один раз (~100 МБ)"));
+      $("cap-hint").textContent = I18N.t("Скачиваю ffmpeg… он нужен для MKV, GIF, склейки и обрезки");
     } else if (event.phase === "progress") {
-      $("cap-hint").textContent = `Скачиваю ffmpeg… ${Number(event.percent) || 0}%`;
+      $("cap-hint").textContent = I18N.t("Скачиваю ffmpeg… {0}%", Number(event.percent) || 0);
     } else if (event.phase === "ready") {
-      toast("ffmpeg установлен — теперь доступны все форматы, склейка и обрезка", "ok");
-      $("cap-hint").textContent = "ffmpeg установлен — все форматы доступны";
+      toast(I18N.t("ffmpeg установлен — теперь доступны все форматы, склейка и обрезка"), "ok");
+      $("cap-hint").textContent = I18N.t("ffmpeg установлен — все форматы доступны");
       void (async () => {
         state.info = await window.api.info();
         renderInfo();
         refreshCodecOptions();
       })();
     } else if (event.phase === "failed") {
-      toast(`ffmpeg скачать не удалось (${event.error || "сеть"}) — доступны MP4 и WebM`, "error");
-      $("cap-hint").textContent = "ffmpeg недоступен: перекоды в другие форматы отключены";
+      toast(I18N.t("ffmpeg скачать не удалось ({0}) — доступны MP4 и WebM", event.error || I18N.t("сеть")), "error");
+      $("cap-hint").textContent = I18N.t("ffmpeg недоступен: перекоды в другие форматы отключены");
     }
   });
 
@@ -4577,8 +4600,39 @@ async function runModeTests() {
 
 // ───────────────────────────────────────────────── старт
 
+/**
+ * Смена языка без перезагрузки окна (перезагрузка оборвала бы запись и
+ * захват камеры): статичная разметка переводится по data-i18n, а всё, что
+ * рисуется из кода, перерисовывается заново.
+ */
+async function relocalize(lang) {
+  if (lang === I18N.getLang()) return;
+  I18N.setLang(lang);
+  I18N.applyDom();
+  // Подписи кодеков переводит main — берём их заново.
+  state.info = await window.api.info();
+  applySettingsToUi();
+  await renderInfo();
+  renderAction();
+  refreshScheduleTarget();
+  renderHelp();
+  paintSelectionBar();
+  void renderLibrary();
+  void checkCamera();
+  if (!state.recording) {
+    setRecordingUi(false);
+    await refreshSources();
+  }
+  renderMini();
+}
+
 async function boot() {
   state.settings = await window.api.getSettings();
+  I18N.setLang(state.settings.lang);
+  I18N.applyDom();
+  window.api.onLang((lang) => {
+    void relocalize(lang).catch((err) => console.log(`RELOCALIZE FAILED: ${err?.stack || err}`));
+  });
   state.info = await window.api.info();
   state.action = state.settings.captureAction === "shot" ? "shot" : "video";
   if (state.action === "shot" && state.mode === "audio") state.mode = "screen";
@@ -4589,7 +4643,7 @@ async function boot() {
   renderAction();
   await refreshSources();
   void checkCamera();
-  setRailState("готов", "ok");
+  setRailState(I18N.t("готов"), "ok");
   // История на главной должна быть заполнена сразу, а не после захода в библиотеку.
   void renderLibrary();
   // Если микрофон или система включены, полосы должны показывать сигнал сразу,
@@ -4608,14 +4662,14 @@ async function checkCamera() {
     const mic = devices.filter((device) => device.kind === "audioinput");
     const label = String(cameras[0]?.label || "").slice(0, 22);
     note.textContent = cameras.length
-      ? `${cameras.length} камер(ы)${label ? ` · ${label}` : ""}`
-      : "камера не найдена";
+      ? I18N.t("{0} камер(ы){1}", cameras.length, label ? ` · ${label}` : "")
+      : I18N.t("камера не найдена");
     const micNote = $("mic-note");
     if (micNote && !deviceTest.mic.stream) {
-      micNote.textContent = mic.length ? "голос" : "микрофон не найден";
+      micNote.textContent = mic.length ? I18N.t("голос") : I18N.t("микрофон не найден");
     }
   } catch {
-    note.textContent = "камера недоступна";
+    note.textContent = I18N.t("камера недоступна");
   }
 }
 

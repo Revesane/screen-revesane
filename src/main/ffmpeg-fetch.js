@@ -21,6 +21,7 @@ const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
+const I18N = require("../i18n/i18n.js");
 
 const SOURCES = [
   {
@@ -68,7 +69,7 @@ function extractTar(archivePath, destDir) {
     child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(stderr.trim() || `tar завершился с кодом ${code}`));
+      else reject(new Error(stderr.trim() || I18N.t("tar завершился с кодом {0}", code)));
     });
   });
 }
@@ -119,7 +120,7 @@ function expandArchive(zipPath, destDir) {
     child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(stderr.trim() || `Expand-Archive завершился с кодом ${code}`));
+      else reject(new Error(stderr.trim() || I18N.t("Expand-Archive завершился с кодом {0}", code)));
     });
   });
 }
@@ -170,7 +171,7 @@ function makeDownloader(fetchFn) {
       const response = await fetchFn(url, { redirect: "follow", signal: controller.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const total = Number(response.headers?.get?.("content-length")) || 0;
-      if (!response.body) throw new Error("сервер не отдал тело ответа");
+      if (!response.body) throw new Error(I18N.t("сервер не отдал тело ответа"));
       const reader = response.body.getReader();
       const handle = await fsp.open(destPath, "w");
       let received = 0;
@@ -221,7 +222,7 @@ async function ensureFfmpegMac({ toolsDir, havePath = false, onEvent = () => {},
     (await executableWorks(managedFfmpeg).catch(() => false)) &&
     (await executableWorks(managedFfprobe).catch(() => false))
   ) {
-    emit({ phase: "ready", ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe, source: "кэш" });
+    emit({ phase: "ready", ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe, source: I18N.t("кэш") });
     return { ok: true, cached: true, ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe };
   }
 
@@ -242,16 +243,16 @@ async function ensureFfmpegMac({ toolsDir, havePath = false, onEvent = () => {},
     });
     await installExecutable(ffmpegTmp, managedFfmpeg);
     if (!(await executableWorks(managedFfmpeg).catch(() => false))) {
-      throw new Error("скачанный ffmpeg не запустился на этой системе");
+      throw new Error(I18N.t("скачанный ffmpeg не запустился на этой системе"));
     }
 
     // 2. ffprobe: реестр npm → tarball → tar → bin/darwin/<arch>/ffprobe.
     emit({ phase: "download", source: "ffprobe-static" });
     const metaResponse = await fetchFn(MAC_FFPROBE_REGISTRY, {});
-    if (!metaResponse.ok) throw new Error(`npm registry ответил ${metaResponse.status}`);
+    if (!metaResponse.ok) throw new Error(I18N.t("npm registry ответил {0}", metaResponse.status));
     const meta = await metaResponse.json();
     const tarballUrl = meta?.dist?.tarball;
-    if (!tarballUrl) throw new Error("npm registry не отдал адрес пакета");
+    if (!tarballUrl) throw new Error(I18N.t("npm registry не отдал адрес пакета"));
     const tgzPath = path.join(tempDir, "ffprobe.tgz");
     await downloadTo({
       url: tarballUrl,
@@ -262,10 +263,10 @@ async function ensureFfmpegMac({ toolsDir, havePath = false, onEvent = () => {},
     await fsp.mkdir(unpackDir, { recursive: true });
     await extractTar(tgzPath, unpackDir);
     const probe = await findTool(unpackDir, "ffprobe", `${path.sep}darwin${path.sep}${macArch()}${path.sep}`);
-    if (!probe) throw new Error("в пакете ffprobe-static нет bin/darwin/<arch>/ffprobe");
+    if (!probe) throw new Error(I18N.t("в пакете ffprobe-static нет bin/darwin/<arch>/ffprobe"));
     await installExecutable(probe, managedFfprobe);
     if (!(await executableWorks(managedFfprobe).catch(() => false))) {
-      throw new Error("скачанный ffprobe не запустился на этой системе");
+      throw new Error(I18N.t("скачанный ffprobe не запустился на этой системе"));
     }
 
     await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
@@ -321,7 +322,7 @@ async function ensureFfmpegWindows({
     (await executableWorks(managedFfmpeg).catch(() => false)) &&
     (await executableWorks(managedFfprobe).catch(() => false))
   ) {
-    emit({ phase: "ready", ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe, source: "кэш" });
+    emit({ phase: "ready", ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe, source: I18N.t("кэш") });
     return { ok: true, cached: true, ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe };
   }
 
@@ -345,7 +346,7 @@ async function ensureFfmpegWindows({
       const ffmpeg = await findTool(unpackDir, "ffmpeg.exe");
       const ffprobe = await findTool(unpackDir, "ffprobe.exe");
       if (!ffmpeg || !ffprobe) {
-        throw new Error("в архиве нет bin/ffmpeg.exe и bin/ffprobe.exe");
+        throw new Error(I18N.t("в архиве нет bin/ffmpeg.exe и bin/ffprobe.exe"));
       }
       await fsp.copyFile(ffmpeg, managedFfmpeg);
       await fsp.copyFile(ffprobe, managedFfprobe);
@@ -353,7 +354,7 @@ async function ensureFfmpegWindows({
         !(await executableWorks(managedFfmpeg).catch(() => false)) ||
         !(await executableWorks(managedFfprobe).catch(() => false))
       ) {
-        throw new Error("скачанные файлы не запустились на этой системе");
+        throw new Error(I18N.t("скачанные файлы не запустились на этой системе"));
       }
       await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       emit({ phase: "ready", ffmpegPath: managedFfmpeg, ffprobePath: managedFfprobe, source: source.label });

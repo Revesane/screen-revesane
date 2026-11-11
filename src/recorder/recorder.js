@@ -99,10 +99,10 @@ export class Recorder {
           audio: Boolean(systemAudio) && target?.kind === "screen",
         }),
         15000,
-        "getDisplayMedia не ответил за 15 с",
+        I18N.t("getDisplayMedia не ответил за 15 с"),
       );
       const track = stream.getVideoTracks()[0];
-      if (!track) throw new Error("нет видеодорожки экрана");
+      if (!track) throw new Error(I18N.t("нет видеодорожки экрана"));
       const video = document.createElement("video");
       video.muted = true;
       video.playsInline = true;
@@ -175,7 +175,7 @@ export class Recorder {
     micCleanup = true,
     systemDevice = "",
   }) {
-    if (this.active) throw new Error("запись уже идёт");
+    if (this.active) throw new Error(I18N.t("запись уже идёт"));
 
     // Звук компьютера берём либо loopback-ом Windows, либо с выбранного входа
     // (интерфейс, виртуальный кабель): DAW на ASIO в микшер Windows не попадает.
@@ -184,10 +184,10 @@ export class Recorder {
     const wantLoopback = Boolean(systemAudio) && !systemDevice && !IS_MAC;
     const warnings = [];
     if (IS_MAC && systemAudio && !systemDevice) {
-      warnings.push("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера");
+      warnings.push(I18N.t("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера"));
     }
     const mimeType = pickMimeType();
-    if (mimeType === null) throw new Error("MediaRecorder недоступен в этом окне");
+    if (mimeType === null) throw new Error(I18N.t("MediaRecorder недоступен в этом окне"));
 
     // Замер этапов старта: на этой машине WGC отдаёт первый кадр через ~5 с,
     // и без разбивки по шагам непонятно, что именно ждать.
@@ -214,12 +214,12 @@ export class Recorder {
           audio: wantLoopback && target.kind === "screen",
         }),
         15000,
-        "getDisplayMedia не ответил за 15 с",
+        I18N.t("getDisplayMedia не ответил за 15 с"),
       );
       mark("getDisplayMedia");
 
       const freshTrack = this._display.getVideoTracks()[0];
-      if (!freshTrack) throw new Error("нет видеодорожки экрана");
+      if (!freshTrack) throw new Error(I18N.t("нет видеодорожки экрана"));
       this._video = document.createElement("video");
       this._video.muted = true;
       this._video.playsInline = true;
@@ -256,14 +256,14 @@ export class Recorder {
             audio: true,
           }),
           15000,
-          "звук экрана не ответил за 15 с",
+          I18N.t("звук экрана не ответил за 15 с"),
         );
         loopbackTracks = this._loopback.getAudioTracks();
         if (!loopbackTracks.length) {
-          warnings.push("Chromium не отдал системный звук для окна — дорожка будет без него");
+          warnings.push(I18N.t("Chromium не отдал системный звук для окна — дорожка будет без него"));
         }
       } catch (err) {
-        warnings.push(`системный звук не открылся: ${err.name || err.message}`);
+        warnings.push(I18N.t("системный звук не открылся: {0}", err.name || err.message));
       }
     }
 
@@ -294,10 +294,10 @@ export class Recorder {
           audio: wantLoopback && target.kind === "screen",
         }),
         15000,
-        "getDisplayMedia не ответил за 15 с",
+        I18N.t("getDisplayMedia не ответил за 15 с"),
       );
       const retryTrack = retry.getVideoTracks()[0];
-      if (!retryTrack) throw new Error("нет видеодорожки экрана");
+      if (!retryTrack) throw new Error(I18N.t("нет видеодорожки экрана"));
       this._display = retry;
       this._video = document.createElement("video");
       this._video.muted = true;
@@ -318,10 +318,10 @@ export class Recorder {
     }
 
     const videoTrack = this._display.getVideoTracks()[0];
-    if (!videoTrack) throw new Error("нет видеодорожки экрана");
+    if (!videoTrack) throw new Error(I18N.t("нет видеодорожки экрана"));
 
     // 2. Геометрия: обрезка области в пикселях устройства.
-    if (!vw || !vh) throw new Error("поток экрана не отдал размер кадра");
+    if (!vw || !vh) throw new Error(I18N.t("поток экрана не отдал размер кадра"));
 
     let cx = 0;
     let cy = 0;
@@ -371,7 +371,7 @@ export class Recorder {
         await image.decode();
         this._placeholder = image;
       } catch (err) {
-        warnings.push(`заглушка не загрузилась: ${err.name || err.message}`);
+        warnings.push(I18N.t("заглушка не загрузилась: {0}", err.name || err.message));
       }
     }
 
@@ -388,7 +388,7 @@ export class Recorder {
         this._webcamVideo.srcObject = this._webcamStream;
         await this._webcamVideo.play();
       } catch (err) {
-        warnings.push(`веб-камера недоступна: ${err.name || err.message}`);
+        warnings.push(I18N.t("веб-камера недоступна: {0}", err.name || err.message));
         this._webcamStream = null;
         this._webcamVideo = null;
       }
@@ -421,7 +421,7 @@ export class Recorder {
         this._connectWithGain("mic", micSource, dest, micVolume);
         this._meters.mic = this._meterFor(micSource);
       } catch (err) {
-        warnings.push(`микрофон недоступен: ${err.name || err.message}`);
+        warnings.push(I18N.t("микрофон недоступен: {0}", err.name || err.message));
       }
     }
     if (hasSystemAudio) {
@@ -432,11 +432,11 @@ export class Recorder {
     }
     audioTracks.push(...dest.stream.getAudioTracks());
       } catch (err) {
-        warnings.push(`звук не сведён: ${err.name || err.message}`);
+        warnings.push(I18N.t("звук не сведён: {0}", err.name || err.message));
       }
     }
     if (wantLoopback && !hasSystemAudio && target.kind === "screen") {
-      warnings.push("системный звук не отдан Chromium — дорожка будет без него");
+      warnings.push(I18N.t("системный звук не отдан Chromium — дорожка будет без него"));
     }
 
     // 6. Первый живой кадр не ждём: пока WGC его не отдал, рисуем заглушку —
@@ -479,7 +479,7 @@ export class Recorder {
       task.finally(() => this._pendingChunks.delete(task));
     });
     this._recorder.addEventListener("error", (event) => {
-      this.onError(event.error || new Error("ошибка MediaRecorder"));
+      this.onError(event.error || new Error(I18N.t("ошибка MediaRecorder")));
     });
 
     // 7. Цикл отрисовки: по кадрам источника, а не по таймеру — меньше нагрузка
@@ -495,7 +495,7 @@ export class Recorder {
     this.pausedMs = 0;
 
     videoTrack.addEventListener("ended", () => {
-      if (this.active) this.onError(new Error("захват экрана остановлен извне"));
+      if (this.active) this.onError(new Error(I18N.t("захват экрана остановлен извне")));
     });
 
     return {
@@ -523,14 +523,14 @@ export class Recorder {
     micCleanup = true,
     systemDevice = "",
   }) {
-    if (this.active) throw new Error("запись уже идёт");
+    if (this.active) throw new Error(I18N.t("запись уже идёт"));
 
     // На macOS loopback недоступен: системный звук — через виртуальное
     // устройство (BlackHole), выбранное источником звука компьютера.
     const wantLoopback = Boolean(systemAudio) && !systemDevice && !IS_MAC;
     const warnings = [];
     if (IS_MAC && systemAudio && !systemDevice) {
-      warnings.push("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера");
+      warnings.push(I18N.t("на macOS системный звук пишется с виртуального устройства — установите BlackHole и выберите его источником звука компьютера"));
     }
     const mimeType = [
       'audio/webm;codecs="opus"',
@@ -550,10 +550,10 @@ export class Recorder {
       this._display = await withTimeout(
         navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }),
         15000,
-        "getDisplayMedia не ответил за 15 с",
+        I18N.t("getDisplayMedia не ответил за 15 с"),
       );
       systemTracks = this._display.getAudioTracks();
-      if (!systemTracks.length) warnings.push("системный звук не отдан Chromium");
+      if (!systemTracks.length) warnings.push(I18N.t("системный звук не отдан Chromium"));
       // Видео нам не нужно, но дорожку держим до конца записи, иначе Chromium
       // закрывает весь захват вместе с ней.
     }
@@ -580,7 +580,7 @@ export class Recorder {
         this._connectWithGain("mic", micSource, dest, micVolume);
         this._meters.mic = this._meterFor(micSource);
       } catch (err) {
-        warnings.push(`микрофон недоступен: ${err.name || err.message}`);
+        warnings.push(I18N.t("микрофон недоступен: {0}", err.name || err.message));
       }
     }
     if (systemTracks.length) {
@@ -588,7 +588,7 @@ export class Recorder {
       this._connectWithGain("system", sysSource, dest, systemVolume);
       this._meters.system = this._meterFor(sysSource);
     }
-    if (!mic && !systemTracks.length) throw new Error("нечего записывать: включите микрофон или системный звук");
+    if (!mic && !systemTracks.length) throw new Error(I18N.t("нечего записывать: включите микрофон или системный звук"));
 
     this._composite = dest.stream;
     this._recorder = new MediaRecorder(this._composite, mimeType ? { mimeType } : undefined);
@@ -613,7 +613,7 @@ export class Recorder {
       task.finally(() => this._pendingChunks.delete(task));
     });
     this._recorder.addEventListener("error", (event) => {
-      this.onError(event.error || new Error("ошибка MediaRecorder"));
+      this.onError(event.error || new Error(I18N.t("ошибка MediaRecorder")));
     });
 
     this._recorder.start(1000);
@@ -810,7 +810,7 @@ export class Recorder {
       });
       return this._sysDeviceStream.getAudioTracks();
     } catch (err) {
-      warnings.push(`выбранный источник звука компьютера недоступен: ${err.name || err.message}`);
+      warnings.push(I18N.t("выбранный источник звука компьютера недоступен: {0}", err.name || err.message));
       return [];
     }
   }

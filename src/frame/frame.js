@@ -6,6 +6,16 @@
  * только индикация, управление остаётся на горячих клавишах и главном окне.
  */
 (() => {
+  const qs = new URLSearchParams(location.search);
+  I18N.setLang(qs.get("lang") === "en" ? "en" : "ru");
+  I18N.applyDom();
+  // Динамические подписи рамки — числа (таймер, размер) и имя контейнера,
+  // они не переводятся; при смене языка достаточно обновить разметку.
+  window.frameApi.onLang((lang) => {
+    I18N.setLang(lang);
+    I18N.applyDom();
+  });
+
   const params = new URLSearchParams(location.search);
   const width = Number(params.get("w")) || 0;
   const height = Number(params.get("h")) || 0;
