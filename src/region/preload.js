@@ -9,4 +9,10 @@ contextBridge.exposeInMainWorld("regionApi", {
   // Повторное нажатие горячей клавиши: подтвердить уже нарисованную рамку.
   onConfirm: (handler) => ipcRenderer.on("region:confirm", () => handler()),
   onLang: (handler) => ipcRenderer.on("lang:changed", (_e, lang) => handler(lang)),
+  // Снимок текущей рамки, окно выделения при этом не закрывается.
+  snap: (rect, copy) => ipcRenderer.invoke("region:snap", { rect, copy }),
+  // Снять экран как есть (с рамкой видео) перед выделением снимка.
+  snapBegin: () => ipcRenderer.invoke("region:snap-begin"),
+  snapEnd: () => ipcRenderer.send("region:snap-end"),
+  onSnapRequest: (handler) => ipcRenderer.on("region:snap-request", () => handler()),
 });

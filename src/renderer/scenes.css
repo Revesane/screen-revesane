@@ -1,0 +1,343 @@
+/* Мини-сцены для тура и «Помощи»: маленькие «видео» на CSS-анимациях.
+   Сцена всегда 380×210 (координаты ниже — в этих пикселях); крупнее её
+   делает zoom у контейнера. */
+
+.scene {
+  position: relative;
+  width: 380px;
+  height: 210px;
+  margin: 2px 0 10px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--line-rgb) / 0.18);
+  background: linear-gradient(160deg, #1b3247, #0c1824);
+  font: 600 9.5px/1.2 var(--font);
+  color: #e6edf3;
+  text-align: left;
+}
+.scene > * { position: absolute; }
+.scene .sc-cursor { left: 0; top: 0; width: 16px; height: 16px; z-index: 9; }
+.sc-cursor-svg { width: 16px; height: 16px; fill: #fff; stroke: #07101a; stroke-width: 1.4; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
+.sc-click {
+  position: absolute; left: -9px; top: -10px; width: 22px; height: 22px;
+  border-radius: 50%; border: 2px solid var(--accent); opacity: 0;
+}
+.sc-caption { left: 0; right: 0; bottom: 0; height: 26px; background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8)); }
+.sc-caption span { position: absolute; left: 10px; bottom: 7px; font-size: 10.5px; color: #fff; opacity: 0; }
+
+/* Рабочий стол-заглушка. */
+.sc-desk { inset: 0; }
+.sc-win { position: absolute; border-radius: 4px; background: rgba(255, 255, 255, 0.1); border-top: 7px solid rgba(255, 255, 255, 0.16); }
+.sc-desk .w1 { left: 22px; top: 22px; width: 150px; height: 100px; }
+.sc-desk .w2 { left: 190px; top: 60px; width: 160px; height: 110px; }
+.sc-desk .w3 { left: 60px; top: 132px; width: 110px; height: 52px; }
+
+/* ── выделение области → формат → запись: цикл 11 с */
+.scene-region { --sc-t: 11s; }
+.scene-region .sc-sel {
+  left: 70px; top: 46px; width: 0; height: 0;
+  border: 2px solid var(--accent); border-radius: 2px;
+  box-shadow: 0 0 0 999px rgba(3, 7, 12, 0.55);
+  animation: rg-sel var(--sc-t) infinite;
+}
+@keyframes rg-sel {
+  0%, 8% { opacity: 0; width: 0; height: 0; border-color: var(--accent); box-shadow: 0 0 0 999px rgba(3, 7, 12, 0.55); }
+  9%, 12% { opacity: 1; width: 0; height: 0; }
+  28%, 64% { opacity: 1; width: 230px; height: 90px; border-color: var(--accent); box-shadow: 0 0 0 999px rgba(3, 7, 12, 0.55); }
+  67%, 95% { opacity: 1; width: 230px; height: 90px; border-color: #ff4b4b; box-shadow: 0 0 0 999px rgba(3, 7, 12, 0), 0 0 12px rgba(255, 75, 75, 0.6); }
+  100% { opacity: 0; width: 230px; height: 90px; }
+}
+.scene-region .sc-size {
+  position: absolute; right: -2px; bottom: -15px; padding: 1px 4px; border-radius: 3px;
+  background: var(--accent); color: var(--accent-ink); font: 700 8px/1.3 var(--mono); white-space: nowrap;
+  animation: rg-ui var(--sc-t) infinite;
+}
+.scene-region .sc-hint {
+  left: 50%; top: 8px; transform: translateX(-50%); padding: 4px 9px; border-radius: 7px; white-space: nowrap;
+  background: rgba(15, 22, 30, 0.95); border: 1px solid rgb(var(--accent-rgb) / 0.5);
+  animation: rg-ui var(--sc-t) infinite;
+}
+.scene-region .sc-bar {
+  left: 50%; top: 152px; transform: translateX(-50%); display: flex; gap: 5px; white-space: nowrap;
+  animation: rg-ui var(--sc-t) infinite;
+}
+.scene-region .sc-bar > span {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px;
+  border-radius: 6px; background: rgba(15, 22, 30, 0.95); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.sc-fmt { min-width: 46px; }
+.sc-fmt b { font-weight: 700; }
+.sc-fmt .f1 { animation: rg-f1 var(--sc-t) infinite; }
+.sc-fmt .f2 { position: absolute; left: 8px; animation: rg-f2 var(--sc-t) infinite; }
+.scene-region .sc-bar > .sc-rec { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.sc-rec i { width: 7px; height: 7px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 0 1.5px #fff; }
+@keyframes rg-ui { 0%, 29% { opacity: 0; } 32%, 64% { opacity: 1; } 66%, 100% { opacity: 0; } }
+@keyframes rg-f1 { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+@keyframes rg-f2 { 0%, 55% { opacity: 0; } 56%, 100% { opacity: 1; } }
+.scene-region .sc-menu {
+  left: 96px; top: 86px; width: 66px; display: flex; flex-direction: column; padding: 3px;
+  border-radius: 6px; background: rgba(15, 22, 30, 0.98); border: 1px solid rgb(var(--accent-rgb) / 0.5);
+  animation: rg-menu var(--sc-t) infinite;
+}
+.sc-menu span { padding: 2px 5px; border-radius: 3px; }
+.sc-menu .pick { animation: rg-pick var(--sc-t) infinite; }
+@keyframes rg-menu { 0%, 45% { opacity: 0; } 46%, 55% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes rg-pick { 0%, 52% { background: transparent; } 53%, 100% { background: rgb(var(--accent-rgb) / 0.35); } }
+.scene-region .sc-live {
+  left: 230px; top: 28px; height: 16px; width: 76px; display: flex; align-items: center; gap: 4px; padding: 0 6px;
+  border-radius: 5px; background: rgba(15, 22, 30, 0.95); color: #ff6b6b; font-weight: 800;
+  animation: rg-live var(--sc-t) infinite;
+}
+.sc-live i { width: 6px; height: 6px; border-radius: 50%; background: #ff3b3b; animation: sc-blink 0.9s infinite; }
+.sc-live b { position: absolute; left: 36px; color: #fff; font: 700 9px var(--mono); opacity: 0; }
+.sc-live .n1 { animation: rg-n1 var(--sc-t) infinite; }
+.sc-live .n2 { animation: rg-n2 var(--sc-t) infinite; }
+.sc-live .n3 { animation: rg-n3 var(--sc-t) infinite; }
+@keyframes rg-live { 0%, 66% { opacity: 0; } 68%, 95% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes rg-n1 { 0%, 67% { opacity: 0; } 68%, 76% { opacity: 1; } 77%, 100% { opacity: 0; } }
+@keyframes rg-n2 { 0%, 76% { opacity: 0; } 77%, 85% { opacity: 1; } 86%, 100% { opacity: 0; } }
+@keyframes rg-n3 { 0%, 85% { opacity: 0; } 86%, 95% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes sc-blink { 50% { opacity: 0.3; } }
+.scene-region .sc-cursor { animation: rg-cur var(--sc-t) infinite; }
+@keyframes rg-cur {
+  0% { transform: translate(40px, 30px); }
+  8%, 12% { transform: translate(70px, 46px); }
+  28%, 36% { transform: translate(300px, 136px); }
+  44%, 47% { transform: translate(118px, 161px); }
+  53%, 56% { transform: translate(118px, 122px); }
+  62%, 66% { transform: translate(190px, 161px); }
+  80%, 100% { transform: translate(340px, 192px); }
+}
+.scene-region .sc-cursor-svg { animation: rg-press var(--sc-t) infinite; transform-origin: 20% 15%; }
+@keyframes rg-press { 0%, 11% { transform: scale(1); } 12%, 28% { transform: scale(0.8); } 29%, 100% { transform: scale(1); } }
+.scene-region .sc-click { animation: rg-click var(--sc-t) infinite; }
+@keyframes rg-click {
+  0%, 11.5%, 15%, 44.5%, 48%, 54.5%, 58%, 63.5%, 67%, 100% { opacity: 0; transform: scale(0.3); }
+  12%, 45%, 55%, 64% { opacity: 1; transform: scale(0.4); }
+  14%, 47%, 57%, 66% { opacity: 0; transform: scale(1.4); }
+}
+.scene-region .c1 { animation: rg-c1 var(--sc-t) infinite; }
+.scene-region .c2 { animation: rg-c2 var(--sc-t) infinite; }
+.scene-region .c3 { animation: rg-c3 var(--sc-t) infinite; }
+@keyframes rg-c1 { 0%, 1% { opacity: 0; } 3%, 29% { opacity: 1; } 31%, 100% { opacity: 0; } }
+@keyframes rg-c2 { 0%, 31% { opacity: 0; } 33%, 58% { opacity: 1; } 60%, 100% { opacity: 0; } }
+@keyframes rg-c3 { 0%, 60% { opacity: 0; } 62%, 96% { opacity: 1; } 98%, 100% { opacity: 0; } }
+
+/* ── «Своё окно»: вы окно видите, запись — нет. Цикл 8 с */
+.scene-self { --sc-t: 8s; }
+.scene-self .sc-col { top: 14px; width: 160px; display: flex; flex-direction: column; gap: 5px; }
+.scene-self .sc-col.left { left: 16px; }
+.scene-self .sc-col.right { right: 16px; }
+.sc-label { font-size: 9.5px; color: var(--muted); }
+.sc-screen { position: relative; height: 100px; border-radius: 6px; background: linear-gradient(160deg, #2a4a66, #13283b); border: 1px solid rgba(255, 255, 255, 0.14); overflow: hidden; }
+.sc-screen .w1 { left: 10px; top: 12px; width: 70px; height: 48px; }
+.sc-app { position: absolute; left: 62px; top: 34px; width: 86px; height: 56px; border-radius: 5px; padding: 6px; display: flex; gap: 3px; background: #0d1823; border: 1px solid rgb(var(--accent-rgb) / 0.7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+.sc-app i { flex: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.09); }
+.sc-app i.r { background: radial-gradient(circle, #ff4b4b 0 4px, transparent 5px), rgba(255, 255, 255, 0.09); }
+.sc-out { border-color: #ff4b4b; box-shadow: 0 0 0 1px rgba(255, 75, 75, 0.4); }
+.sc-out .sc-app { animation: sf-app var(--sc-t) infinite; }
+.sc-ghost { position: absolute; left: 62px; top: 52px; width: 86px; text-align: center; color: #9fe8de; font-size: 9px; opacity: 0; animation: sf-ghost var(--sc-t) infinite; }
+@keyframes sf-app { 0%, 43% { opacity: 1; } 50%, 90% { opacity: 0; } 96%, 100% { opacity: 1; } }
+@keyframes sf-ghost { 0%, 46% { opacity: 0; } 52%, 90% { opacity: 1; } 95%, 100% { opacity: 0; } }
+.scene-self .sc-arrow { left: 50%; top: 66px; transform: translateX(-50%); font-size: 18px; color: var(--accent); }
+.scene-self .sc-toggle {
+  left: 50%; top: 150px; transform: translateX(-50%); height: 26px; min-width: 150px; padding: 0 12px;
+  border-radius: 8px; display: grid; place-items: center; white-space: nowrap; font-size: 10.5px;
+  background: rgba(15, 22, 30, 0.95); border: 1px solid rgb(var(--accent-rgb) / 0.6);
+  animation: sf-tog var(--sc-t) infinite;
+}
+.sc-toggle span { grid-area: 1 / 1; }
+.sc-toggle .s1 { animation: sf-s1 var(--sc-t) infinite; }
+.sc-toggle .s2 { animation: sf-s2 var(--sc-t) infinite; color: var(--accent); }
+@keyframes sf-s1 { 0%, 42% { opacity: 1; } 43%, 93% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes sf-s2 { 0%, 42% { opacity: 0; } 43%, 93% { opacity: 1; } 95%, 100% { opacity: 0; } }
+@keyframes sf-tog { 0%, 42%, 95%, 100% { box-shadow: none; } 43%, 93% { box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.45); } }
+.scene-self .sc-cursor { animation: sf-cur var(--sc-t) infinite; }
+@keyframes sf-cur {
+  0%, 18% { transform: translate(320px, 190px); }
+  36%, 46% { transform: translate(196px, 160px); }
+  64%, 100% { transform: translate(330px, 196px); }
+}
+.scene-self .sc-click { animation: sf-click var(--sc-t) infinite; }
+@keyframes sf-click { 0%, 41.5%, 47%, 100% { opacity: 0; transform: scale(0.3); } 42% { opacity: 1; transform: scale(0.4); } 46% { opacity: 0; transform: scale(1.4); } }
+.scene-self .sc-caption span { animation: sf-cap var(--sc-t) infinite; }
+.scene-self .sc-caption .k2 { animation-name: sf-cap2; }
+@keyframes sf-cap { 0%, 1% { opacity: 0; } 3%, 41% { opacity: 1; } 43%, 100% { opacity: 0; } }
+@keyframes sf-cap2 { 0%, 43% { opacity: 0; } 46%, 92% { opacity: 1; } 95%, 100% { opacity: 0; } }
+
+/* ── темы: цикл 7,5 с, пять тем по 1,5 с */
+@property --sc-acc { syntax: "<color>"; inherits: true; initial-value: #2bd6c6; }
+.scene-themes { --sc-t: 7.5s; animation: th-acc var(--sc-t) infinite; }
+@keyframes th-acc {
+  0%, 18% { --sc-acc: #2bd6c6; } 20%, 38% { --sc-acc: #38bdf8; } 40%, 58% { --sc-acc: #f5b748; }
+  60%, 78% { --sc-acc: #ef4444; } 80%, 98% { --sc-acc: #67e8f9; } 100% { --sc-acc: #2bd6c6; }
+}
+.scene-themes .sc-bg { inset: 0; opacity: 0; animation: th-bg var(--sc-t) infinite; }
+@keyframes th-bg { 0%, 18% { opacity: 1; } 20%, 100% { opacity: 0; } }
+.scene-themes .b1 { background: radial-gradient(160px 90px at 0% 100%, rgba(43, 214, 198, 0.35), transparent), linear-gradient(160deg, #0a1824, #050c13); }
+.scene-themes .b2 { background: radial-gradient(60px 60px at 75% 58%, #ffd27a, transparent), linear-gradient(180deg, #1f5f9e 0%, #f0a35e 55%, #1f8fb0 62%, #05324d 100%); }
+.scene-themes .b3 { background: repeating-conic-gradient(from 200deg at 80% 10%, rgba(255, 207, 107, 0.35) 0 4deg, transparent 4deg 12deg), #0b0804; }
+.scene-themes .b4 { background: repeating-conic-gradient(from 200deg at 80% 10%, rgba(255, 45, 45, 0.35) 0 4deg, transparent 4deg 12deg), #0b0b0d; }
+.scene-themes .b5 { background: radial-gradient(120px 80px at 10% 90%, rgba(63, 208, 255, 0.35), transparent), conic-gradient(from 30deg at 85% 20%, rgba(191, 244, 255, 0.25), transparent 30%), #06111d; }
+.scene-themes .sc-bg.b2 { animation-delay: -6s; }
+.scene-themes .sc-bg.b3 { animation-delay: -4.5s; }
+.scene-themes .sc-bg.b4 { animation-delay: -3s; }
+.scene-themes .sc-bg.b5 { animation-delay: -1.5s; }
+.scene-themes .sc-ui { left: 30px; right: 30px; top: 26px; height: 92px; display: flex; gap: 8px; }
+.sc-ui i { flex: 1; border-radius: 8px; background: rgba(10, 16, 24, 0.62); border: 1px solid color-mix(in srgb, var(--sc-acc) 45%, transparent); }
+.sc-ui i.r {
+  flex: 1.1; border-color: var(--sc-acc); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-acc) 50%, transparent);
+  background: radial-gradient(circle, #ff4747 0 9px, transparent 10px), radial-gradient(circle, transparent 0 20px, var(--sc-acc) 21px 23px, transparent 24px), rgba(10, 16, 24, 0.62);
+}
+.scene-themes .sc-tiles { left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 8px; }
+.sc-tiles i { position: relative; width: 28px; height: 28px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.2); }
+.sc-ring { position: absolute; left: -4px; top: -4px; width: 36px; height: 36px; border-radius: 9px; border: 2px solid #fff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); animation: th-ring var(--sc-t) infinite; }
+@keyframes th-ring { 0%, 18% { transform: translateX(0); } 20%, 38% { transform: translateX(36px); } 40%, 58% { transform: translateX(72px); } 60%, 78% { transform: translateX(108px); } 80%, 98% { transform: translateX(144px); } 100% { transform: translateX(0); } }
+
+/* ── обновление: цикл 7 с */
+.scene-update { --sc-t: 7s; }
+.scene-update .sc-card {
+  left: 90px; top: 40px; width: 200px; padding: 12px;
+  border-radius: 10px; background: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.16), rgb(var(--accent-rgb) / 0.05)), #0c1622;
+  border: 1px solid rgb(var(--accent-rgb) / 0.5); animation: up-card var(--sc-t) infinite;
+}
+.sc-head { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 9px; }
+.sc-head i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.scene-update .sc-bar { position: relative; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); margin-bottom: 9px; overflow: hidden; }
+.scene-update .sc-bar span { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); animation: up-bar var(--sc-t) infinite; }
+.sc-btn { position: relative; display: grid; place-items: center; height: 24px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.sc-btn span { grid-area: 1 / 1; opacity: 0; }
+.sc-btn .u1 { animation: up-u1 var(--sc-t) infinite; }
+.sc-btn .u2 { animation: up-u2 var(--sc-t) infinite; }
+.sc-btn .u3 { animation: up-u3 var(--sc-t) infinite; }
+@keyframes up-u1 { 0%, 26% { opacity: 1; } 27%, 100% { opacity: 0; } }
+@keyframes up-u2 { 0%, 26% { opacity: 0; } 27%, 58% { opacity: 1; } 59%, 100% { opacity: 0; } }
+@keyframes up-u3 { 0%, 58% { opacity: 0; } 59%, 76% { opacity: 1; } 77%, 100% { opacity: 0; } }
+@keyframes up-bar { 0%, 27% { width: 0; } 58%, 76% { width: 100%; } 77%, 100% { width: 0; } }
+@keyframes up-card { 0%, 74% { opacity: 1; } 78%, 94% { opacity: 0; } 98%, 100% { opacity: 1; } }
+.scene-update .sc-done { left: 0; right: 0; top: 92px; text-align: center; font-size: 13px; color: var(--accent); opacity: 0; animation: up-done var(--sc-t) infinite; }
+@keyframes up-done { 0%, 77% { opacity: 0; } 80%, 94% { opacity: 1; } 97%, 100% { opacity: 0; } }
+.scene-update .sc-cursor { animation: up-cur var(--sc-t) infinite; }
+@keyframes up-cur {
+  0%, 8% { transform: translate(330px, 190px); }
+  20%, 30% { transform: translate(196px, 106px); }
+  42%, 60% { transform: translate(300px, 170px); }
+  68%, 76% { transform: translate(196px, 106px); }
+  90%, 100% { transform: translate(330px, 190px); }
+}
+.scene-update .sc-click { animation: up-click var(--sc-t) infinite; }
+@keyframes up-click {
+  0%, 25.5%, 29%, 71.5%, 75%, 100% { opacity: 0; transform: scale(0.3); }
+  26%, 72% { opacity: 1; transform: scale(0.4); }
+  28%, 74% { opacity: 0; transform: scale(1.4); }
+}
+
+/* ── компактный режим: цикл 10 с */
+.scene-compact { --sc-t: 10s; }
+.scene-compact .sc-desk .w1 { left: 18px; top: 18px; width: 150px; height: 96px; }
+.scene-compact .sc-desk .w2 { left: 40px; top: 120px; width: 120px; height: 60px; }
+.scene-compact .sc-big {
+  left: 20px; top: 14px; width: 340px; height: 176px; padding: 8px;
+  border-radius: 10px; background: #0d1823; border: 1px solid rgb(var(--accent-rgb) / 0.45);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5); transform-origin: 100% 100%;
+  animation: cp-big var(--sc-t) infinite;
+}
+.sc-big-head { display: flex; justify-content: space-between; align-items: center; height: 16px; font-size: 9px; }
+.sc-dots { padding: 0 5px; border-radius: 4px; font-size: 12px; line-height: 14px; animation: cp-dots var(--sc-t) infinite; }
+.sc-big-cards { display: flex; gap: 5px; height: 70px; margin: 8px 0; }
+.sc-big-cards i { flex: 1; border-radius: 6px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgb(var(--accent-rgb) / 0.25); }
+.sc-big-cards i.r { background: radial-gradient(circle, #ff4747 0 8px, transparent 9px), radial-gradient(circle, transparent 0 18px, var(--accent) 19px 21px, transparent 22px), rgba(255, 255, 255, 0.07); }
+.sc-big-list { display: flex; flex-direction: column; gap: 5px; }
+.sc-big-list i { height: 12px; border-radius: 3px; background: rgba(255, 255, 255, 0.06); }
+@keyframes cp-big {
+  0%, 16% { opacity: 1; transform: scale(1); }
+  26% { opacity: 0.6; transform: scale(0.5); }
+  29%, 100% { opacity: 0; transform: scale(0.5); }
+}
+@keyframes cp-dots { 0%, 14% { background: transparent; } 15%, 18% { background: rgb(var(--accent-rgb) / 0.5); } 19%, 100% { background: transparent; } }
+
+.scene-compact .sc-mini {
+  left: 186px; top: 64px; width: 178px; height: 118px; padding: 7px;
+  display: flex; flex-direction: column; gap: 6px;
+  border-radius: 10px; background: #0d1823; border: 1px solid rgb(var(--accent-rgb) / 0.55);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), 0 0 14px rgb(var(--accent-rgb) / 0.2);
+  opacity: 0; animation: cp-mini var(--sc-t) infinite;
+}
+@keyframes cp-mini { 0%, 24% { opacity: 0; transform: scale(0.9); } 30%, 96% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+.sc-mini-head { position: relative; display: flex; align-items: center; gap: 5px; height: 12px; }
+.sc-mini-head b { position: absolute; left: 12px; font: 700 10px var(--mono); opacity: 0; }
+.sc-mini-head .t0 { animation: cp-t0 var(--sc-t) infinite; }
+.sc-mini-head .t1 { animation: cp-t1 var(--sc-t) infinite; }
+.sc-mini-head .t2 { animation: cp-t2 var(--sc-t) infinite; }
+@keyframes cp-t0 { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0; } }
+@keyframes cp-t1 { 0%, 60% { opacity: 0; } 61%, 72% { opacity: 1; } 73%, 100% { opacity: 0; } }
+@keyframes cp-t2 { 0%, 72% { opacity: 0; } 73%, 96% { opacity: 1; } 97%, 100% { opacity: 0; } }
+.sc-mini-dot { width: 6px; height: 6px; border-radius: 50%; background: #4b5563; animation: cp-dot var(--sc-t) infinite; }
+@keyframes cp-dot { 0%, 60% { background: #4b5563; } 61%, 96% { background: #ff5265; } }
+.sc-mini-x { margin-left: auto; font-size: 8px; color: var(--muted); }
+.sc-mini-modes { position: relative; display: flex; gap: 3px; padding: 2px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); }
+.sc-mini-modes i { flex: 1; height: 13px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); }
+.sc-mini-pick {
+  position: absolute; left: 2px; top: 2px; width: calc((100% - 22px) / 7); height: 13px; border-radius: 3px;
+  background: var(--accent); box-shadow: 0 0 8px rgb(var(--accent-rgb) / 0.6);
+  animation: cp-pick var(--sc-t) infinite;
+}
+@keyframes cp-pick { 0%, 44% { transform: translateX(0); } 46%, 100% { transform: translateX(calc(200% + 6px)); } }
+.sc-mini-main { display: flex; align-items: center; gap: 8px; flex: 1; }
+.sc-mini-rec {
+  width: 52px; height: 52px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--accent); box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.45);
+  animation: cp-rec var(--sc-t) infinite;
+}
+.sc-mini-rec i { width: 16px; height: 16px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 8px rgba(255, 59, 59, 0.7); animation: cp-glyph var(--sc-t) infinite; }
+@keyframes cp-rec { 0%, 60% { border-color: var(--accent); } 61%, 96% { border-color: #ff4b4b; box-shadow: 0 0 14px rgba(255, 75, 75, 0.6); } }
+@keyframes cp-glyph { 0%, 60% { border-radius: 50%; background: #ff3b3b; } 61%, 96% { border-radius: 3px; background: #e8eef3; box-shadow: none; } }
+.sc-mini-side { position: relative; flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sc-mini-side b { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-mini-side .mn1 { position: absolute; left: 0; right: 0; top: 0; }
+.sc-mini-side .mn0 { animation: cp-mn0 var(--sc-t) infinite; }
+.sc-mini-side .mn1 { animation: cp-mn1 var(--sc-t) infinite; }
+@keyframes cp-mn0 { 0%, 45% { opacity: 1; } 46%, 100% { opacity: 0; } }
+@keyframes cp-mn1 { 0%, 45% { opacity: 0; } 46%, 100% { opacity: 1; } }
+.sc-mini-fmt { align-self: flex-start; padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 8px; }
+.sc-mini-acts { display: flex; gap: 3px; }
+.sc-mini-acts i { flex: 1; height: 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
+.sc-mini-acts i.p, .sc-mini-acts i.s { opacity: 0; animation: cp-acts var(--sc-t) infinite; }
+.sc-mini-acts i.s { background: rgba(255, 75, 75, 0.35); }
+@keyframes cp-acts { 0%, 60% { opacity: 0; } 62%, 96% { opacity: 1; } }
+
+.scene-compact .sc-cursor { animation: cp-cur var(--sc-t) infinite; }
+@keyframes cp-cur {
+  0%, 5% { transform: translate(200px, 120px); }
+  13%, 18% { transform: translate(342px, 25px); }
+  34%, 38% { transform: translate(300px, 150px); }
+  43%, 47% { transform: translate(246px, 92px); }
+  55%, 62% { transform: translate(215px, 132px); }
+  78%, 100% { transform: translate(330px, 196px); }
+}
+.scene-compact .sc-click { animation: cp-click var(--sc-t) infinite; }
+@keyframes cp-click {
+  0%, 15.5%, 19%, 44.5%, 48%, 59.5%, 63%, 100% { opacity: 0; transform: scale(0.3); }
+  16%, 45%, 60% { opacity: 1; transform: scale(0.4); }
+  18%, 47%, 62% { opacity: 0; transform: scale(1.4); }
+}
+.scene-compact .q1 { animation: cp-q1 var(--sc-t) infinite; }
+.scene-compact .q2 { animation: cp-q2 var(--sc-t) infinite; }
+.scene-compact .q3 { animation: cp-q3 var(--sc-t) infinite; }
+@keyframes cp-q1 { 0%, 1% { opacity: 0; } 3%, 32% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes cp-q2 { 0%, 34% { opacity: 0; } 36%, 53% { opacity: 1; } 55%, 100% { opacity: 0; } }
+@keyframes cp-q3 { 0%, 55% { opacity: 0; } 57%, 96% { opacity: 1; } 98%, 100% { opacity: 0; } }
+
+/* Сцена в карточке тура: карточка шире, сцена по центру. */
+.tour-card.has-scene { width: 414px; }
+.tour-scene .scene { margin: 4px 0 10px; }
+
+/* «Помощь»: те же сцены крупнее. */
+.help-videos { display: flex; flex-wrap: wrap; gap: 18px; margin: 8px 0 4px; }
+.help-videos figure { margin: 0; }
+.help-videos .scene { zoom: 1.45; margin: 0; }
+.help-videos figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scene, .scene * { animation-play-state: paused !important; }
+}

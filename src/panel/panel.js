@@ -42,5 +42,6 @@
   });
 
   document.getElementById("pause").addEventListener("click", () => window.panelApi.command("pause"));
+  document.getElementById("shot").addEventListener("click", () => window.panelApi.command("regionShot"));
   document.getElementById("stop").addEventListener("click", () => window.panelApi.command("stop"));
 })();

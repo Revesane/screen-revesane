@@ -3,6 +3,7 @@
 import { Recorder, pickMimeType, mimeToExt, grabStill, grabRegion } from "../recorder/recorder.js";
 import { createTour } from "./tour.js";
 import { createTips } from "./tips.js";
+import { mountScenes } from "./scenes.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,8 +47,12 @@ let meterHandle = null;
 const tour = createTour({
   showView: (name) => showView(name),
   hotkeys: () => state.settings?.hotkeys,
+  // Запоминаем версию, в которой тур показан: после обновления он запустится снова.
   onFinish: () => {
-    if (!state.settings?.tourDone) void saveSetting({ tourDone: true });
+    const version = state.info?.version || "";
+    if (!state.settings?.tourDone || state.settings?.tourVersion !== version) {
+      void saveSetting({ tourDone: true, tourVersion: version });
+    }
   },
 });
 
@@ -176,6 +181,48 @@ async function checkUpdateManually() {
     }
     renderUpdate();
   }
+}
+
+// ───────────────────────────────────────────────── темы оформления
+
+const THEMES = ["teal", "ocean", "jungle", "gold", "ruby", "ice", "amber"];
+let themeImageLoaded = null;
+
+/** Тема из настроек — на <html>; своя картинка — поверх фона темы. */
+async function applyTheme() {
+  const s = state.settings || {};
+  const theme = THEMES.includes(s.theme) ? s.theme : "teal";
+  document.documentElement.dataset.theme = theme;
+  document.querySelectorAll(".theme-tile, .theme-item[data-pick]").forEach((tile) => {
+    tile.classList.toggle("is-active", tile.dataset.pick === theme);
+  });
+  const image = String(s.themeImage || "");
+  const label = $("theme-image-name");
+  if (label) {
+    label.removeAttribute("data-i18n");
+    label.textContent = image ? image.split(/[\\/]/).pop() : I18N.t("не выбрана");
+  }
+  const clear = $("btn-theme-image-clear");
+  if (clear) clear.disabled = !image;
+  if (!image) {
+    themeImageLoaded = null;
+    document.documentElement.style.removeProperty("--app-art");
+    return;
+  }
+  if (themeImageLoaded === image) return;
+  const read = await window.api.readImage({ filePath: image }).catch(() => null);
+  if (!read?.ok) {
+    uiLog("warn", `картинка фона не прочиталась: ${read?.error || read?.reason || "?"}`, "theme");
+    document.documentElement.style.removeProperty("--app-art");
+    return;
+  }
+  themeImageLoaded = image;
+  // Лёгкое затемнение поверх картинки: текст и карточки читаются на любом фото.
+  document.documentElement.style.setProperty(
+    "--app-art",
+    `linear-gradient(180deg, rgba(4, 10, 16, 0.28), rgba(4, 10, 16, 0.5)), url("${read.dataUrl}") center / cover no-repeat, var(--bg)`,
+  );
+  document.documentElement.style.setProperty("--glass-blur", "14px");
 }
 
 /** Открыть раздел настроек (для кнопок в подсказках). */
@@ -1749,8 +1796,50 @@ async function takeScreenshot() {
 }
 
 /** Как «Ножницы»: выделил область → снимок открылся картинкой, можно копировать. */
+/**
+ * Снимок области поверх идущей записи. Отдельный захват здесь не открыть
+ * (сессия у Chromium одна и занята записью), поэтому кадр вырезает main из
+ * снимка экрана, сделанного перед показом рамки. Сразу в библиотеку или,
+ * по Ctrl+C, в буфер — редактор не открываем, чтобы не влезть в запись.
+ */
+async function takeRegionShotWhileRecording() {
+  if (state.shotPending) return;
+  state.shotPending = true;
+  try {
+    const format = state.settings.screenshotFormat || "png";
+    const picked = await window.api.pickRegion({ intent: "shot", still: true, stillFormat: format });
+    if (!picked?.ok) {
+      uiLog("info", `снимок области во время записи отменён: ${picked?.reason || "без причины"}`, "shot");
+      return;
+    }
+    if (!picked.still) throw new Error(I18N.t("снимок экрана не получен"));
+    const size = `${Math.round(picked.region.width)}×${Math.round(picked.region.height)}`;
+    if (picked.copy) {
+      const copied = await window.api.copyImage(picked.still);
+      uiLog("info", `снимок области во время записи ${size} → буфер (${copied?.ok ? "ок" : "не удалось"})`, "shot");
+      if (copied?.ok) toast(I18N.t("Снимок области скопирован в буфер обмена"), "ok");
+      else toast(I18N.t("Снимок снят, но в буфер не попал: {0}", copied?.error || I18N.t("нет доступа к буферу")), "error");
+      return;
+    }
+    const result = await window.api.screenshot({ dataUrl: picked.still, format });
+    if (!result?.ok) throw new Error(describeFailure(result));
+    uiLog("info", `снимок области во время записи: ${size} → ${result.path.split(/[\/]/).pop()}`, "shot");
+    toast(I18N.t("Снимок области сохранён, запись продолжается · {0}", formatSize(result.size)), "ok");
+    void renderLibrary();
+  } catch (err) {
+    uiLog("error", `снимок области во время записи не получился: ${err.message}`, "shot");
+    toast(I18N.t("Снимок области не получился: {0}", err.message), "error");
+  } finally {
+    state.shotPending = false;
+  }
+}
+
 async function takeRegionScreenshot() {
-  if (state.recording || state.busy) {
+  if (state.recording) {
+    await takeRegionShotWhileRecording();
+    return;
+  }
+  if (state.busy) {
     uiLog("warn", "снимок области пропущен: занято", "shot");
     return;
   }
@@ -3200,9 +3289,31 @@ function renderMini() {
         : I18N.t("готов");
   }
   const primary = $("mini-primary");
-  if (primary) primary.classList.toggle("live", recording);
+  if (primary) {
+    primary.classList.toggle("live", recording);
+    primary.classList.toggle("is-shot", !recording && state.action === "shot");
+  }
   const label = $("mini-primary-label");
-  if (label) label.textContent = recording ? I18N.t("Стоп") : state.action === "shot" ? I18N.t("Снимок") : I18N.t("Записать");
+  if (label) label.textContent = recording ? I18N.t("Стоп") : state.action === "shot" ? I18N.t("Снимок") : "REC";
+  // Режимы: подсвечен текущий; во время записи переключать нельзя.
+  const preset = `${state.mode}:${state.action}`;
+  document.querySelectorAll("[data-mini-preset]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.miniPreset === preset);
+    button.disabled = recording || Boolean(state.busy);
+  });
+  const pause = $("mini-pause");
+  const stop = $("mini-stop");
+  if (pause) {
+    pause.hidden = !recording;
+    pause.title = recorder.paused ? I18N.t("Продолжить") : I18N.t("Пауза");
+  }
+  if (stop) stop.hidden = !recording;
+  const last = $("mini-last");
+  if (last) {
+    const hint = $("cap-hint")?.textContent || "";
+    last.textContent = /:/.test(hint) ? hint : "";
+    last.title = last.textContent;
+  }
   const mode = $("mini-mode");
   if (mode) {
     mode.textContent =
@@ -3220,10 +3331,16 @@ function renderMini() {
   if (micButton) micButton.classList.toggle("on", Boolean(settings.mic));
   const systemButton = $("mini-system");
   if (systemButton) systemButton.classList.toggle("on", Boolean(settings.systemAudio));
+  // Формат — тот же список, что в «Настройки → Вывод».
   const format = $("mini-format");
-  if (format) {
-    const container = String(settings.videoContainer || "auto").toLowerCase();
-    format.textContent = container === "auto" ? "AUTO" : container.toUpperCase();
+  const source = $("sel-container");
+  if (format && source) {
+    if (format.options.length !== source.options.length || format.dataset.lang !== I18N.getLang()) {
+      format.innerHTML = source.innerHTML;
+      format.dataset.lang = I18N.getLang();
+    }
+    format.value = source.value;
+    format.disabled = recording || state.mode === "audio" || state.action === "shot";
   }
 }
 
@@ -3426,6 +3543,7 @@ async function renderAudioDevices() {
 }
 
 function applySettingsToUi() {
+  void applyTheme();
   const s = state.settings;
   $("sel-fps").value = String(s.fps);
   $("sel-quality").value = s.quality;
@@ -3574,7 +3692,22 @@ function bindEvents() {
   $("mini-expand").addEventListener("click", () => void setCompactMode(false));
   $("mini-close").addEventListener("click", () => window.api.close());
   $("mini-primary").addEventListener("click", () => void handlePrimary());
-  $("mini-pause").addEventListener("click", () => void togglePause());
+  $("mini-pause").addEventListener("click", () => {
+    togglePause();
+    renderMini();
+  });
+  $("mini-shot").addEventListener("click", () => void takeRegionScreenshot());
+  document.querySelectorAll("[data-mini-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.querySelector(`.preset[data-preset="${button.dataset.miniPreset}"]`)?.click();
+      renderMini();
+    });
+  });
+  $("mini-format").addEventListener("change", (event) => {
+    const source = $("sel-container");
+    source.value = event.target.value;
+    source.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   $("mini-stop").addEventListener("click", () => {
     if (state.recording) void endRecording();
   });
@@ -3822,7 +3955,7 @@ function bindEvents() {
   $("btn-recent-all").addEventListener("click", () => showView("library"));
   $("btn-clear-library").addEventListener("click", clearLibraryUi);
   $("btn-recent-clear").addEventListener("click", clearLibraryUi);
-  $("mini-library-clear").addEventListener("click", clearLibraryUi);
+
   $("btn-clear-selection").addEventListener("click", () => {
     state.selection.clear();
     void renderLibrary();
@@ -3914,6 +4047,58 @@ function bindEvents() {
   // Окна перерисовывает событие lang:changed от main: оно приходит всем окнам сразу.
   $("sel-language")?.addEventListener("change", (e) => void saveSetting({ language: e.target.value }));
   $("btn-tour")?.addEventListener("click", () => tour.start());
+  mountScenes(document.getElementById("view-help"));
+  document.querySelectorAll(".theme-tile, .theme-item[data-pick]").forEach((tile) => {
+    tile.addEventListener("click", () => {
+      void saveSetting({ theme: tile.dataset.pick }).then(() => applyTheme());
+    });
+  });
+  // Палитра в заголовке: список тем, клик мимо — закрыть.
+  const themeMenu = $("theme-menu");
+  const themeButton = $("btn-theme");
+  const setThemeMenu = (open) => {
+    themeMenu.hidden = !open;
+    themeButton.classList.toggle("is-open", open);
+    // Заголовок окна — зона перетаскивания, клики по ней до страницы не
+    // доходят. Пока меню открыто, снимаем её — клик по заголовку закрывает меню.
+    document.body.classList.toggle("menu-open", open);
+  };
+  // Ушли в другое окно — меню закрывается, а не висит открытым.
+  window.addEventListener("blur", () => {
+    if (!themeMenu.hidden) setThemeMenu(false);
+  });
+  themeButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setThemeMenu(themeMenu.hidden);
+  });
+  document.addEventListener("click", (event) => {
+    if (!themeMenu.hidden && !themeMenu.contains(event.target)) setThemeMenu(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !themeMenu.hidden) setThemeMenu(false);
+  });
+  $("theme-more")?.addEventListener("click", () => {
+    setThemeMenu(false);
+    openSettingsSection("theme");
+  });
+  $("btn-theme-image")?.addEventListener("click", async () => {
+    const picked = await window.api.chooseThemeImage();
+    if (picked?.ok) {
+      themeImageLoaded = null;
+      await saveSetting({ themeImage: picked.path });
+      await applyTheme();
+      toast(I18N.t("Фон: {0}", picked.name), "ok");
+    } else if (picked?.reason === "too-large") {
+      toast(I18N.t("Картинка больше 25 МБ — выберите поменьше"), "error");
+    } else if (picked?.error) {
+      toast(I18N.t("Картинка не скопировалась: {0}", picked.error), "error");
+    }
+  });
+  $("btn-theme-image-clear")?.addEventListener("click", async () => {
+    await saveSetting({ themeImage: "" });
+    document.documentElement.style.removeProperty("--glass-blur");
+    await applyTheme();
+  });
   $("btn-check-update")?.addEventListener("click", () => void checkUpdateManually());
   $("ru-main")?.addEventListener("click", () => void runUpdateAction());
   $("ru-notes")?.addEventListener("click", () => void window.api.openUpdatePage());
@@ -3926,6 +4111,10 @@ function bindEvents() {
     toast(I18N.t("Версия {0} пропущена. Проверить снова можно в «О программе»", version), "ok");
   });
   window.api.onUpdateAvailable((info) => showUpdate(info));
+  // Снимок, сделанный из окна выделения видео, — сразу в библиотеку.
+  window.api.onRegionSnapped?.((result) => {
+    if (result?.ok && !result.copy) void renderLibrary();
+  });
   window.api.onUpdateProgress((progress) => {
     updateUi.percent = Number(progress?.percent) || 0;
     if (updateUi.phase === "downloading") renderUpdate();
@@ -4017,7 +4206,8 @@ function bindEvents() {
         window.api.confirmRegion();
         return;
       }
-      if (!state.recording && !state.busy) void takeRegionScreenshot();
+      // Во время записи снимок области тоже можно: он режется из снимка экрана.
+      if (state.recording || !state.busy) void takeRegionScreenshot();
     } else if (kind === "screenshot") {
       void takeScreenshot();
     } else if (kind === "library") {
@@ -4042,6 +4232,7 @@ function bindEvents() {
       if (state.recording) void endRecording();
       else if (state.busy) pendingStop = true;
     } else if (command === "pause") togglePause();
+    else if (command === "regionShot" && state.recording) void takeRegionScreenshot();
   });
 
   window.api.onCursor((point) => recorder.setCursor(point));
@@ -4948,6 +5139,7 @@ async function relocalize(lang) {
   tips.hide();
   tour.relocalize();
   renderUpdate();
+  mountScenes(document.getElementById("view-help"));
 }
 
 async function boot() {
@@ -4983,10 +5175,15 @@ async function boot() {
   // а не только после старта записи.
   syncPreviewMeters();
   renderMini();
-  // Первый запуск: тур по программе. В автотестах и в компактном окне — нет.
-  if (!state.settings.tourDone && !state.info?.automation && !compactMode) {
+  // Тур по программе: при первом запуске и после каждого обновления (версия
+  // программы не совпадает с той, в которой тур показан). В автотестах и в
+  // компактном окне — нет.
+  const version = state.info?.version || "";
+  const firstRun = !state.settings.tourDone;
+  const updated = !firstRun && Boolean(version) && state.settings.tourVersion !== version;
+  if ((firstRun || updated) && !state.info?.automation && !compactMode) {
     setTimeout(() => {
-      if (!state.recording && !compactMode) tour.start();
+      if (!state.recording && !compactMode) tour.start({ updatedTo: updated ? version : "" });
     }, 900);
   }
 }

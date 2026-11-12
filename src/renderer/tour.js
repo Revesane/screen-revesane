@@ -10,6 +10,8 @@
  * поэтому запустить его можно в любой момент без побочных эффектов.
  */
 
+import { sceneHtml } from "./scenes.js";
+
 const STEP_MS = 7500;
 
 /** Карточка, в которой лежит элемент: подсвечиваем её целиком. */
@@ -30,6 +32,14 @@ const STEPS = [
     title: "Что записывать",
     text: "Экран, окно, выделенная область, только звук или скриншот — режим выбирается здесь.",
     demo: "click",
+  },
+  {
+    target: () => document.getElementById("mode-select-btn"),
+    title: "Как записать область",
+    text: "«Выделить и записать видео» ({2}): обведите область мышью, выберите формат и нажмите «Записать». Кнопки держатся рядом с рамкой.",
+    demo: "none",
+    scene: "region",
+    ms: 11000,
   },
   {
     target: () => cardOf("#sel-source"),
@@ -72,6 +82,14 @@ const STEPS = [
     demo: "sweep",
   },
   {
+    target: () => document.getElementById("strip-self"),
+    title: "Своё окно: в кадре или скрыто",
+    text: "«Скрыто» — окно Screen Revesane видно вам, но не попадает в видео: можно записывать экран и управлять программой. «В кадре» — окно снимается вместе со всем экраном.",
+    demo: "none",
+    scene: "self",
+    ms: 8000,
+  },
+  {
     target: () => document.querySelector(".recent"),
     title: "Готовые записи",
     text: "Здесь появляются записи и снимки: открыть, подрезать, склеить или разметить.",
@@ -79,10 +97,34 @@ const STEPS = [
     pointAt: "head",
   },
   {
+    target: () => document.getElementById("btn-compact"),
+    title: "Компактный режим",
+    text: "«⋯» в заголовке сворачивает окно в мини-пульт поверх всех окон: режимы одной иконкой, REC, формат, звук, снимок области. Вернуть обычное окно — стрелки в углу пульта.",
+    demo: "none",
+    scene: "compact",
+    ms: 10000,
+  },
+  {
     target: () => document.querySelector('.rail-btn[data-view="settings"]'),
     title: "Настройки",
     text: "Формат и качество, звук, водяной знак, горячие клавиши и язык интерфейса.",
     demo: "click",
+  },
+  {
+    target: () => document.getElementById("btn-theme"),
+    title: "Темы оформления",
+    text: "Палитра в заголовке окна — быстрый выбор из семи тем: Бирюза, Океан, Джунгли, Золото, Рубин, Лёд, Янтарь. Своя картинка фона — в Настройки → «Оформление».",
+    demo: "none",
+    scene: "themes",
+    ms: 7500,
+  },
+  {
+    target: () => document.getElementById("rail-state"),
+    title: "Обновления",
+    text: "Когда выйдет новая версия, здесь появится карточка с кнопкой «Обновить»: программа скачает установщик, проверит его и поставит. Проверить вручную — «О программе».",
+    demo: "none",
+    scene: "update",
+    ms: 7000,
   },
   {
     target: () => document.querySelector('.rail-btn[data-view="help"]'),
@@ -112,6 +154,8 @@ export function createTour({ showView, hotkeys, onFinish }) {
   let root = null;
   let index = 0;
   let playing = true;
+  // Тур после обновления: первый шаг говорит, до какой версии обновились.
+  let updatedTo = "";
   let demoTimer = 0;
   let resizeHandler = null;
   let keyHandler = null;
@@ -133,6 +177,7 @@ export function createTour({ showView, hotkeys, onFinish }) {
         </div>
         <div class="tour-body">
           <div class="tour-hello"><span></span><span></span><span></span></div>
+          <div class="tour-scene"></div>
           <h3 class="tour-title"></h3>
           <p class="tour-text"></p>
         </div>
@@ -198,6 +243,8 @@ export function createTour({ showView, hotkeys, onFinish }) {
     fill.style.animation = "none";
     void fill.offsetWidth;
     fill.style.animation = "";
+    // Длительность шага: у шагов-«видео» — один цикл их сцены.
+    fill.style.animationDuration = `${STEPS[index].ms || STEP_MS}ms`;
     root.querySelector(".tour-progress").hidden = index === STEPS.length - 1;
   }
 
@@ -208,9 +255,19 @@ export function createTour({ showView, hotkeys, onFinish }) {
     body.classList.remove("is-in");
     void body.offsetWidth;
     body.classList.add("is-in");
-    root.querySelector(".tour-title").textContent = I18N.t(step.title);
-    root.querySelector(".tour-text").textContent = I18N.t(step.text, keys.toggle || "F9", keys.pause || "F8");
+    const welcomeAfterUpdate = index === 0 && updatedTo;
+    root.querySelector(".tour-title").textContent = welcomeAfterUpdate
+      ? I18N.t("Программа обновлена до версии {0}", updatedTo)
+      : I18N.t(step.title);
+    root.querySelector(".tour-text").textContent = welcomeAfterUpdate
+      ? I18N.t("Покажем, что где находится и что появилось нового. Тур можно пропустить и повторить позже в «Помощи».")
+      : I18N.t(step.text, keys.toggle || "F9", keys.pause || "F8", keys.region || "F7");
     root.querySelector(".tour-hello").hidden = index !== 0;
+    // Шаг-«видео»: мини-сцена крутится в карточке, шаг длится один её цикл.
+    const sceneBox = root.querySelector(".tour-scene");
+    sceneBox.innerHTML = step.scene ? sceneHtml(step.scene) : "";
+    sceneBox.hidden = !step.scene;
+    root.querySelector(".tour-card").classList.toggle("has-scene", Boolean(step.scene));
     paintChrome();
     restartProgress();
     layout(true);
@@ -337,8 +394,10 @@ export function createTour({ showView, hotkeys, onFinish }) {
     onFinish?.(completed);
   }
 
-  function start() {
+  /** @param {{updatedTo?: string}} [opts] updatedTo — тур после обновления */
+  function start(opts = {}) {
     if (root) return;
+    updatedTo = String(opts.updatedTo || "");
     showView("capture");
     document.getElementById("mode-menu")?.setAttribute("hidden", "");
     index = 0;

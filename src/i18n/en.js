@@ -620,6 +620,9 @@
 
     // Тур по программе
     "Добро пожаловать!": "Welcome!",
+    "Программа обновлена до версии {0}": "Updated to version {0}",
+    "Покажем, что где находится и что появилось нового. Тур можно пропустить и повторить позже в «Помощи».":
+      "Here's where everything is and what's new. You can skip the tour and replay it later from “Help”.",
     "За минуту покажем, как здесь всё устроено. Тур можно пропустить и повторить позже в «Помощи».":
       "In one minute we'll show you how everything works. You can skip the tour and replay it later from “Help”.",
     "Что записывать": "What to record",
@@ -650,6 +653,76 @@
     "Показать тур": "Show tour",
     "Вернуть скрытые советы": "Restore hidden tips",
     "Скрытые советы снова будут показываться": "Hidden tips will be shown again",
+
+    // Темы
+    "Оформление": "Appearance",
+    "Тема оформления": "Theme",
+    "Своя картинка фона…": "Custom background…",
+    "Палитра в заголовке окна — быстрый выбор из семи тем: Бирюза, Океан, Джунгли, Золото, Рубин, Лёд, Янтарь. Своя картинка фона — в Настройки → «Оформление».":
+      "The palette in the title bar picks one of seven themes: Teal, Ocean, Jungle, Gold, Ruby, Ice, Amber. A custom background image is in Settings → “Appearance”.",
+    // Компактный режим
+    "«⋯» в заголовке сворачивает окно в мини-пульт поверх всех окон: режимы одной иконкой, REC, формат, звук, снимок области. Вернуть обычное окно — стрелки в углу пульта.":
+      "“⋯” in the title bar shrinks the window into a mini console on top of all windows: modes as icons, REC, format, audio, region screenshot. The arrows in its corner bring the full window back.",
+    "1. «⋯» в заголовке — свернуть в мини-пульт": "1. “⋯” in the title bar — shrink into a mini console",
+    "2. Режим — одной иконкой": "2. Pick a mode with one icon",
+    "3. REC — запись, рядом пауза и стоп": "3. REC — record, with pause and stop next to it",
+    "Компактный режим: мини-пульт поверх окон": "Compact mode: a mini console on top of windows",
+    "Звук системы": "System audio",
+    "Снимок этой рамки — окно выделения останется открытым": "Screenshot of this frame — the selection stays open",
+    "Снимок рамки скопирован в буфер": "Frame screenshot copied to the clipboard",
+    "Снимок сохранён · {0} × {1}": "Screenshot saved · {0} × {1}",
+    "Снять": "Capture",
+    "Назад к видео": "Back to video",
+    "Снимок экрана вместе с рамкой: выделите область · {0} — сохранить · {1} — копировать · {2} — назад к видео":
+      "Screenshot of the screen with the frame: select an area · {0} — save · {1} — copy · {2} — back to video",
+    "Снимок не получился: {0}": "Screenshot failed: {0}",
+    "Бирюза": "Teal",
+    "Океан": "Ocean",
+    "Джунгли": "Jungle",
+    "Золото": "Gold",
+    "Рубин": "Ruby",
+    "Лёд": "Ice",
+    "Янтарь": "Amber",
+    "Своя картинка фона": "Custom background image",
+    "Убрать": "Remove",
+    "Тема меняет цвета и фон окна сразу, без перезапуска. Своя картинка ложится поверх фона темы, а цвета кнопок берутся из выбранной темы. Картинка копируется в папку настроек — исходный файл можно перемещать.":
+      "The theme changes the window colors and background instantly, no restart needed. A custom image replaces the theme background while button colors come from the selected theme. The image is copied to the settings folder, so you can move the original file.",
+    "Картинка фона": "Background image",
+    "Картинки": "Images",
+    "Фон: {0}": "Background: {0}",
+    "Картинка больше 25 МБ — выберите поменьше": "The image is larger than 25 MB — choose a smaller one",
+    "Картинка не скопировалась: {0}": "The image couldn't be copied: {0}",
+
+    // Снимок поверх записи
+    "Снимок области поверх записи (F6)": "Region screenshot over the recording (F6)",
+    "снимок экрана не получен": "no screen image received",
+    "Снимок области сохранён, запись продолжается · {0}": "Region screenshot saved, recording continues · {0}",
+
+    // Сцены и новые шаги тура
+    "Тяните края · Enter — записать": "Drag the edges · Enter — record",
+    "1. Обведите область мышью": "1. Draw the region with the mouse",
+    "2. Выберите формат: MP4, WebM, GIF…": "2. Choose a format: MP4, WebM, GIF…",
+    "3. «Записать» — пошла запись": "3. “Record” — recording starts",
+    "Ваш экран": "Your screen",
+    "Что попадёт в запись": "What gets recorded",
+    "окна нет": "no window",
+    "«В кадре» — окно программы попадает в видео": "“In frame” — the app window appears in the video",
+    "«Скрыто» — вы окно видите, а в записи его нет": "“Hidden” — you see the window, the recording doesn't",
+    "Новая версия установлена": "New version installed",
+    "Как записать область": "How to record a region",
+    "«Выделить и записать видео» ({2}): обведите область мышью, выберите формат и нажмите «Записать». Кнопки держатся рядом с рамкой.":
+      "“Select and record video” ({2}): draw the region with the mouse, choose a format and press “Record”. The buttons stay right next to the frame.",
+    "Своё окно: в кадре или скрыто": "App window: in frame or hidden",
+    "«Скрыто» — окно Screen Revesane видно вам, но не попадает в видео: можно записывать экран и управлять программой. «В кадре» — окно снимается вместе со всем экраном.":
+      "“Hidden” — you can see the Screen Revesane window but it stays out of the video, so you can record the screen and control the app. “In frame” — the window is recorded along with the rest of the screen.",
+    "Темы оформления": "Themes",
+    "Настройки → «Оформление»: семь тем — Бирюза, Океан, Джунгли, Золото, Рубин, Лёд, Янтарь — и своя картинка фона.":
+      "Settings → “Appearance”: seven themes — Teal, Ocean, Jungle, Gold, Ruby, Ice, Amber — plus your own background image.",
+    "Когда выйдет новая версия, здесь появится карточка с кнопкой «Обновить»: программа скачает установщик, проверит его и поставит. Проверить вручную — «О программе».":
+      "When a new version comes out, a card with an “Update” button appears here: the app downloads the installer, verifies it and installs it. To check manually, go to “About”.",
+    "Видео: как это работает": "Videos: how it works",
+    "Выделение области, выбор формата и запись": "Selecting a region, choosing a format and recording",
+    "Кнопка «Своё окно»: в кадре или скрыто": "The “App window” button: in frame or hidden",
 
     // Умные подсказки
     "Умные подсказки и советы": "Smart hints and tips",

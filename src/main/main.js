@@ -126,12 +126,17 @@ const DEFAULT_SETTINGS = {
   language: "auto",
   // Тур по программе показывается при первом запуске.
   tourDone: false,
+  // Версия, в которой тур показан последним: после обновления он запустится снова.
+  tourVersion: "",
   smartTips: true,
   // Подсказки, которые человек попросил больше не показывать.
   tipsDismissed: [],
   // Обновления: проверять при запуске и раз в 6 часов; пропущенная версия.
   checkUpdates: true,
   skipVersion: "",
+  // Оформление: тема и своя картинка фона (копия в папке настроек).
+  theme: "teal",
+  themeImage: "",
 };
 
 let mainWindow = null;
@@ -140,6 +145,11 @@ let testTargetInfo = null;
 let regionWindow = null;
 let regionResolve = null;
 let regionFinish = null;
+/**
+ * Открытое окно выделения: намерение и снимок экрана под ним. Нужен, чтобы
+ * из окна выделения видео сделать скриншот рамки, не закрывая его.
+ */
+let regionSnapSource = null;
 let regionAttempts = 0;
 /** Что делает прогон самопроверки с очередным оверлеем области. */
 const REGION_SCRIPT = ["drag", "cancel", "drag", "drag"];
@@ -450,7 +460,7 @@ function createMainWindow() {
   });
 
   mainWindow.loadFile(path.join(ROOT, "src", "renderer", "index.html"), {
-    query: { lang: resolveLang(readSettings().language) },
+    query: { lang: resolveLang(readSettings().language), theme: String(readSettings().theme || "teal") },
   });
   mainWindow.once("ready-to-show", () => mainWindow.show());
   // На Windows это WDA_EXCLUDEFROMCAPTURE: наше окно не попадает в запись,
@@ -647,7 +657,86 @@ function installDisplayMediaHandler() {
 
 // ─────────────────────────────────────────────────────────── область
 
-async function pickRegion(intent = "video") {
+/** Вырезать рамку (логические пиксели экрана) из подложки (физические пиксели). */
+function cropBackdrop(image, bounds, rect) {
+  const size = image.getSize();
+  const kx = size.width / bounds.width;
+  const ky = size.height / bounds.height;
+  const x = Math.max(0, Math.min(size.width - 2, Math.round(rect.x * kx)));
+  const y = Math.max(0, Math.min(size.height - 2, Math.round(rect.y * ky)));
+  return image.crop({
+    x,
+    y,
+    width: Math.max(2, Math.min(size.width - x, Math.round(rect.width * kx))),
+    height: Math.max(2, Math.min(size.height - y, Math.round(rect.height * ky))),
+  });
+}
+
+/**
+ * Снимок рамки из окна выделения видео: окно остаётся открытым, запись по
+ * этой рамке можно начать следом. copy — в буфер вместо файла.
+ */
+async function snapFromRegion(rect, copy) {
+  const source = regionSnapSource;
+  // Кадр «как на экране» (с рамкой видео и её кнопками), если его сняли;
+  // иначе — чистая подложка.
+  const image = source?.composite || source?.image;
+  if (!image || !rect || !(rect.width > 1) || !(rect.height > 1)) {
+    return { ok: false, reason: "no-backdrop" };
+  }
+  const format = String(readSettings().screenshotFormat || "png").toLowerCase();
+  const crop = cropBackdrop(image, source.bounds, rect);
+  const size = crop.getSize();
+  let result;
+  if (copy) {
+    clipboard.write({ image: crop });
+    result = { ok: true, copy: true };
+  } else {
+    const dataUrl = /^jpe?g$/.test(format)
+      ? `data:image/jpeg;base64,${crop.toJPEG(92).toString("base64")}`
+      : crop.toDataURL();
+    result = await saveScreenshot({ dataUrl, format });
+  }
+  log.info("shot", `снимок из окна выделения ${size.width}×${size.height}: ${result.ok ? (copy ? "буфер" : path.basename(result.path)) : result.reason || result.code}`);
+  mainWindow?.webContents.send("region:snapped", { ...result, width: size.width, height: size.height });
+  return { ...result, width: size.width, height: size.height };
+}
+
+/**
+ * Снимок экрана как он есть сейчас — вместе с открытым окном выделения видео
+ * (рамка, кнопки, подсказка). Поверх него человек выделяет область снимка.
+ */
+async function captureRegionComposite() {
+  const source = regionSnapSource;
+  if (!source || !regionWindow) return { ok: false, reason: "no-overlay" };
+  try {
+    const display = screen.getDisplayMatching(source.bounds);
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: {
+        width: Math.round(source.bounds.width * display.scaleFactor),
+        height: Math.round(source.bounds.height * display.scaleFactor),
+      },
+    });
+    const own = sources.find((s) => String(s.display_id) === String(display.id)) ?? sources[0];
+    const shot = own?.thumbnail;
+    if (!shot || shot.isEmpty()) return { ok: false, reason: "empty" };
+    source.composite = shot;
+    log.info("shot", "кадр экрана с окном выделения видео — для снимка поверх");
+    return { ok: true, dataUrl: shot.toDataURL() };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * @param {"video"|"shot"} intent
+ * @param {{still?: boolean, stillFormat?: string}} [opts] still — снимок
+ *   области вырезать из замороженной подложки, без отдельного захвата: так
+ *   скриншот можно снять поверх идущей записи (сессия захвата в Chromium одна).
+ */
+async function pickRegion(intent = "video", opts = {}) {
+  const still = Boolean(opts.still);
   if (regionWindow) {
     // Молчаливый отказ здесь выглядел как «нажал — оверлей не появился»:
     // поднимаем уже открытое окно и оставляем след в логе.
@@ -703,6 +792,14 @@ async function pickRegion(intent = "video") {
     });
 
     regionWindow.setAlwaysOnTop(true, "screen-saver");
+    // Поверх идущей записи затемнение и рамка не должны попасть в видео.
+    if (capture.active) {
+      try {
+        regionWindow.setContentProtection(true);
+      } catch {
+        /* старая Windows без WDA_EXCLUDEFROMCAPTURE — оверлей будет виден в записи */
+      }
+    }
     // Windows обрезает новое окно по рабочей области: без явного setBounds
     // оверлей не закрывает панель задач, а замороженный снимок (он во весь
     // экран) сжимается по высоте — выделяешь по картинке, а в кадр попадает
@@ -742,6 +839,7 @@ async function pickRegion(intent = "video") {
         hotkey: String(
           (intent === "shot" ? readSettings().hotkeys?.regionShot : readSettings().hotkeys?.region) || "",
         ),
+        shotKey: String(readSettings().hotkeys?.regionShot || ""),
         // Скрыто ли своё окно из захвата: оверлей подскажет, почему приложение
         // не видно под рамкой.
         selfHidden: readSettings().hideSelf !== false ? "1" : "0",
@@ -763,7 +861,12 @@ async function pickRegion(intent = "video") {
     const backdropPromise = desktopCapturer
       .getSources({
         types: ["screen"],
-        thumbnailSize: { width: display.bounds.width, height: display.bounds.height },
+        // В физических пикселях: из подложки вырезаются снимки, и на экране
+        // 150 % в логических пикселях они вышли бы мыльными.
+        thumbnailSize: {
+          width: Math.round(display.bounds.width * display.scaleFactor),
+          height: Math.round(display.bounds.height * display.scaleFactor),
+        },
       })
       .then((sources) => {
         const own =
@@ -773,6 +876,7 @@ async function pickRegion(intent = "video") {
         // Держим и nativeImage: из него вырежем заглушку ровно по области,
         // чтобы первые кадры записи совпадали с тем, что человек выделил.
         backdropImage = shot;
+        regionSnapSource = { intent, bounds, image: shot };
         return shot.toDataURL();
       })
       .catch(() => null);
@@ -806,6 +910,7 @@ async function pickRegion(intent = "video") {
       const done = regionResolve;
       regionResolve = null;
       regionFinish = null;
+      regionSnapSource = null;
       if (regionWindow) {
         const win = regionWindow;
         regionWindow = null;
@@ -838,21 +943,32 @@ async function pickRegion(intent = "video") {
       let placeholder = null;
       try {
         if (backdropImage) {
-          const size = backdropImage.getSize();
-          const cropRect = {
-            x: Math.max(0, Math.min(size.width - 1, Math.round(rect.x))),
-            y: Math.max(0, Math.min(size.height - 1, Math.round(rect.y))),
-          };
-          cropRect.width = Math.max(2, Math.min(size.width - cropRect.x, Math.round(rect.width)));
-          cropRect.height = Math.max(2, Math.min(size.height - cropRect.y, Math.round(rect.height)));
-          placeholder = backdropImage.crop(cropRect).toDataURL();
+          const cropped = cropBackdrop(backdropImage, bounds, rect);
+          // Заглушка — в логических пикселях, как и холст записи.
+          placeholder = cropped
+            .resize({ width: Math.max(2, Math.round(rect.width)), height: Math.max(2, Math.round(rect.height)) })
+            .toDataURL();
         }
       } catch (err) {
         log.warn("region", `заглушка области не сделана: ${err.message}`);
       }
+      // Снимок поверх записи: та же подложка, но в полном разрешении.
+      let stillUrl = null;
+      if (still && backdropImage) {
+        try {
+          const crop = cropBackdrop(backdropImage, bounds, rect);
+          const jpeg = /^jpe?g$/i.test(String(opts.stillFormat || ""));
+          stillUrl = jpeg
+            ? `data:image/jpeg;base64,${crop.toJPEG(92).toString("base64")}`
+            : crop.toDataURL();
+        } catch (err) {
+          log.warn("region", `снимок из подложки не вырезан: ${err.message}`);
+        }
+      }
       setTimeout(() => {
         done({
           ok: true,
+          still: stillUrl,
           // copy — значит «снять и положить в буфер», редактор не открываем.
           copy: Boolean(rect.copy),
           region: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
@@ -1251,6 +1367,7 @@ async function readImageAsDataUrl(filePath) {
     const buffer = await fsp.readFile(filePath);
     const ext = path.extname(filePath).toLowerCase();
     const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg"
+      : ext === ".webp" ? "image/webp"
       : ext === ".bmp" ? "image/bmp"
         : ext === ".gif" ? "image/gif"
           : ext === ".tiff" || ext === ".tif" ? "image/tiff"
@@ -2162,7 +2279,18 @@ function registerIpc() {
   ipcMain.handle("capture:abort", () => abortCapture());
   ipcMain.handle("capture:screenshot", (_e, dataUrl) => saveScreenshot(dataUrl));
 
-  ipcMain.handle("region:pick", (_e, payload) => pickRegion(payload?.intent === "shot" ? "shot" : "video"));
+  ipcMain.handle("region:pick", (_e, payload) =>
+    pickRegion(payload?.intent === "shot" ? "shot" : "video", {
+      still: payload?.still === true,
+      stillFormat: payload?.stillFormat,
+    }),
+  );
+  ipcMain.handle("region:snap", (_e, payload) => snapFromRegion(payload?.rect, payload?.copy === true));
+  ipcMain.handle("region:snap-begin", () => captureRegionComposite());
+  // Режим снимка закрыт — дальше снова чистая подложка.
+  ipcMain.on("region:snap-end", () => {
+    if (regionSnapSource) regionSnapSource.composite = null;
+  });
   ipcMain.on("region:done", (_e, rect) => {
     if (typeof regionFinish === "function") regionFinish(rect ?? null);
   });
@@ -2306,6 +2434,31 @@ function registerIpc() {
     });
     if (result.canceled || !result.filePaths.length) return null;
     return result.filePaths[0];
+  });
+
+  // Своя картинка фона: копируем в папку настроек, чтобы фон не пропал,
+  // если исходный файл переместят или удалят.
+  ipcMain.handle("theme:chooseImage", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: I18N.t("Картинка фона"),
+      properties: ["openFile"],
+      filters: [{ name: I18N.t("Картинки"), extensions: ["png", "jpg", "jpeg", "webp"] }],
+    });
+    if (result.canceled || !result.filePaths.length) return { ok: false, reason: "cancelled" };
+    const source = result.filePaths[0];
+    try {
+      const st = await fsp.stat(source);
+      if (st.size > 25 * 1024 * 1024) return { ok: false, reason: "too-large" };
+      const dir = path.join(app.getPath("userData"), "backgrounds");
+      await fsp.mkdir(dir, { recursive: true });
+      for (const old of await fsp.readdir(dir)) await fsp.rm(path.join(dir, old), { force: true });
+      const target = path.join(dir, `background${path.extname(source).toLowerCase()}`);
+      await fsp.copyFile(source, target);
+      log.info("theme", `своя картинка фона: ${path.basename(source)} (${st.size} Б)`);
+      return { ok: true, path: target, name: path.basename(source) };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   ipcMain.handle("dialog:chooseDir", async (_e, current) => {
@@ -2482,7 +2635,7 @@ function showPanel(style) {
   const ball = style === "ball";
   if (!panelWindow) {
     panelWindow = new BrowserWindow({
-      width: ball ? 104 : 272,
+      width: ball ? 104 : 306,
       height: ball ? 104 : 62,
       frame: false,
       transparent: true,
@@ -2517,13 +2670,13 @@ function showPanel(style) {
       panelWindow = null;
     });
   } else {
-    panelWindow.setSize(ball ? 104 : 272, ball ? 104 : 62, false);
+    panelWindow.setSize(ball ? 104 : 306, ball ? 104 : 62, false);
     panelWindow.webContents.send("panel:style", ball ? "ball" : "full");
   }
 
   const display = screen.getPrimaryDisplay();
   const { x, y, width, height } = display.workArea;
-  panelWindow.setPosition(x + width - (ball ? 128 : 300), y + height - (ball ? 128 : 94), false);
+  panelWindow.setPosition(x + width - (ball ? 128 : 334), y + height - (ball ? 128 : 94), false);
 }
 
 function hidePanel() {
@@ -2713,6 +2866,12 @@ function registerHotkeys() {
     if (!accelerator) continue;
     try {
       const ok = globalShortcut.register(accelerator, () => {
+        // Клавиша снимка области при открытом выделении видео: снимаем эту же
+        // рамку, окно выделения не закрываем.
+        if (action.name === "regionShot" && regionWindow && regionSnapSource?.intent === "video") {
+          regionWindow.webContents.send("region:snap-request");
+          return;
+        }
         // Канал совпадает с именем действия: hotkey:toggle, hotkey:regionShot…
         mainWindow?.webContents.send(`hotkey:${action.name}`);
       });

@@ -150,16 +150,62 @@
     // У верхнего края крестик ушёл бы за экран — переносим его внутрь рамки.
     sel.classList.toggle("grip-inside", rect.y < 40);
     sel.classList.toggle("narrow", rect.width < 150);
+    dock();
+  }
+
+  /**
+   * Кнопки — сразу под рамкой, подсказка — над ней (над крестиком переноса).
+   * Не хватает места снаружи — переезжают внутрь рамки к её краю; по
+   * горизонтали держатся по центру рамки, но не уходят за экран.
+   */
+  function dock() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const centerX = (w) => clamp(rect.x + rect.width / 2 - w / 2, 8, Math.max(8, vw - w - 8));
+    if (!actions.hidden) {
+      const aw = actions.offsetWidth;
+      const ah = actions.offsetHeight;
+      const bottom = rect.y + rect.height;
+      // 34 px — место под бейджем размера рамки.
+      let top = bottom + 34;
+      if (top + ah > vh - 8) top = rect.y - ah - 48 >= 8 ? rect.y - ah - 48 : bottom - ah - 14;
+      actions.classList.add("docked");
+      actions.style.left = `${Math.round(centerX(aw))}px`;
+      actions.style.top = `${Math.round(Math.max(8, top))}px`;
+    }
+    const hw = hint.offsetWidth;
+    const hh = hint.offsetHeight;
+    const actionsTop = actions.hidden ? null : parseFloat(actions.style.top);
+    // Кнопкам не хватило места снизу и они встали над рамкой — подсказка над ними.
+    const actionsAbove = actionsTop !== null && actionsTop < rect.y;
+    // 44 px — над крестиком переноса, который торчит над рамкой.
+    let top = actionsAbove ? actionsTop - hh - 10 : rect.y - hh - 44;
+    if (top < 8) {
+      // Сверху места нет: внутрь рамки у верхнего края, если она достаточно
+      // высокая, иначе под кнопки.
+      if (rect.height > hh + 60) top = rect.y + 44;
+      else if (!actions.hidden) top = (parseFloat(actions.style.top) || 0) + actions.offsetHeight + 10;
+      else top = rect.y + rect.height + 34;
+    }
+    hint.classList.add("docked");
+    hint.style.left = `${Math.round(centerX(hw))}px`;
+    hint.style.top = `${Math.round(clamp(top, 8, vh - hh - 8))}px`;
   }
 
   // Какую подсказку показываем: храним вид, а не готовый HTML, чтобы при
   // смене языка пересобрать её через I18N.t.
-  let hintKind = "idle"; // idle | adjust | need-draw
+  let hintKind = "idle"; // idle | adjust | need-draw | snap
+  // Режим снимка внутри выделения видео и рамка видео, к которой вернёмся.
+  let snapMode = false;
+  let videoRect = null;
+  const shotKey = query.get("shotKey") || "";
   let hintDim = false;
 
   function renderHint() {
     const html =
-      hintKind === "adjust"
+      hintKind === "snap"
+        ? I18N.t("Снимок экрана вместе с рамкой: выделите область · {0} — сохранить · {1} — копировать · {2} — назад к видео", `<b>Enter${shotKey ? ` / ${shotKey}` : ""}</b>`, "<b>Ctrl+C</b>", "<b>Esc</b>")
+        : hintKind === "adjust"
         ? hintAdjustHtml()
         : hintKind === "need-draw"
           ? I18N.t("Сначала выделите рамку мышью, потом нажмите клавишу ещё раз")
@@ -230,12 +276,17 @@
     mode = "adjust";
     sel.classList.add("adjust");
     actions.hidden = false;
-    setHint("adjust", false);
+    setHint(snapMode ? "snap" : "adjust", false);
     paint();
+    // Подсказка поменяла текст и размер — пересчитать место.
+    requestAnimationFrame(() => rect && dock());
   }
 
   window.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;
+    // Кнопки и список форматов под рамкой — не начало новой рамки: раньше
+    // клик по «Формат» сбрасывал выделение до 16×16.
+    if (event.target.closest?.("#actions, #hint")) return;
     const grip = event.target.closest?.(".grip");
     if (mode === "adjust" && grip) {
       resizeDir = grip.dataset.dir;
@@ -246,7 +297,10 @@
       return;
     }
     // Нажатие внутри рамки (в том числе по крестику) переносит её целиком.
-    if (mode === "adjust" && (event.target.closest?.("#move") || inside({ x: event.clientX, y: event.clientY }))) {
+    // В режиме снимка нажатие внутри рамки рисует новую (снять часть области
+    // видео), а переносит рамку только крестик.
+    const grabInside = !snapMode && inside({ x: event.clientX, y: event.clientY });
+    if (mode === "adjust" && (event.target.closest?.("#move") || grabInside)) {
       moveOffset = { x: event.clientX - rect.x, y: event.clientY - rect.y };
       mode = "move";
       sel.classList.add("busy");
@@ -256,7 +310,7 @@
     mode = "draw";
     anchor = { x: event.clientX, y: event.clientY };
     sel.classList.remove("adjust", "busy");
-    setHint("idle", true);
+    setHint(snapMode ? "snap" : "idle", true);
     rect = { x: anchor.x, y: anchor.y, width: 0, height: 0 };
     paint();
   });
@@ -284,11 +338,15 @@
 
   window.addEventListener("mouseup", (event) => {
     if (event.button !== 0) return;
+    if (mode === "adjust" && event.target.closest?.("#actions, #hint")) return;
     if (mode === "draw") {
       if (!rect || rect.width < MIN_SIDE || rect.height < MIN_SIDE) {
         rect = null;
         sel.classList.remove("on", "adjust");
-        setHint("idle", false);
+        hint.classList.remove("docked");
+        hint.style.left = "";
+        hint.style.top = "";
+        setHint(snapMode ? "snap" : "idle", false);
         mode = "idle";
         return;
       }
@@ -298,13 +356,24 @@
     if (mode === "resize" || mode === "move") {
       sel.classList.remove("busy");
       mode = "adjust";
-      setHint("adjust", false);
+      setHint(snapMode ? "snap" : "adjust", false);
     }
   });
 
   window.addEventListener("keydown", (event) => {
+    // Enter в открытом списке форматов выбирает пункт, а не запускает запись.
+    if (event.key === "Enter" && event.target === formatSelect) return;
     if (event.key === "Escape") {
-      done(null);
+      if (snapMode) exitSnapMode();
+      else done(null);
+      return;
+    }
+    if (snapMode) {
+      if (event.key === "Enter" && mode === "adjust" && rect) void takeSnap(false);
+      if ((event.ctrlKey || event.metaKey) && (event.code === "KeyC" || event.key.toLowerCase() === "c") && mode === "adjust" && rect) {
+        event.preventDefault();
+        void takeSnap(true);
+      }
       return;
     }
     // Ctrl+C — снять область и положить в буфер, как в «Ножницах».
@@ -328,12 +397,17 @@
   });
 
   document.getElementById("accept").addEventListener("click", () => {
-    if (mode === "adjust" && rect) done(rect);
+    if (!snapMode && mode === "adjust" && rect) done(rect);
   });
   // Горячая клавиша «выделить и записать видео», нажатая второй раз, подтверждает
   // рамку: не нужно тянуться к Enter или кнопке. Если рамки ещё нет — говорим,
   // что делать, вместо молчаливого игнорирования.
   window.regionApi.onConfirm?.(() => {
+    // Клавиша записи в режиме снимка — вернуться к рамке видео.
+    if (snapMode) {
+      exitSnapMode();
+      return;
+    }
     if (mode === "adjust" && rect) {
       done(rect);
       return;
@@ -348,6 +422,121 @@
   // Подпись меняем только у надписи: бейдж <kbd>Enter</kbd> внутри кнопки
   // должен остаться на месте.
   document.getElementById("accept-label").textContent = acceptLabel();
+  // Для видео на кнопке — красная точка REC: сразу видно, что начнётся запись.
+  if (intent === "video") {
+    document.getElementById("rec-dot").hidden = false;
+    document.getElementById("accept").classList.add("has-rec");
+  }
+  window.addEventListener("resize", () => rect && dock());
+
+  // Снимок рамки из окна выделения видео: кнопка «Снимок» и клавиша снимка
+  // области. Окно не закрывается — следом можно записать эту же область.
+  const snapButton = document.getElementById("snap");
+  const snapNote = document.getElementById("snap-note");
+  let noteTimer = 0;
+  function showNote(text, error) {
+    snapNote.textContent = text;
+    snapNote.classList.toggle("is-error", Boolean(error));
+    snapNote.hidden = false;
+    const w = snapNote.offsetWidth;
+    const left = rect ? rect.x + rect.width / 2 - w / 2 : window.innerWidth / 2 - w / 2;
+    const top = rect ? rect.y + 14 : 80;
+    snapNote.style.left = `${Math.round(clamp(left, 8, window.innerWidth - w - 8))}px`;
+    snapNote.style.top = `${Math.round(top)}px`;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      snapNote.hidden = true;
+    }, 2200);
+  }
+  /**
+   * Режим снимка внутри выделения видео (клавиша снимка области или кнопка
+   * «Снимок»): рамка становится жёлтой, её можно подвинуть или нарисовать
+   * заново; Enter / та же клавиша — снять, Esc — назад к рамке видео.
+   */
+  const snapLayer = document.getElementById("snap-layer");
+  let snapStarting = false;
+
+  async function enterSnapMode() {
+    if (snapMode || snapStarting) return;
+    snapStarting = true;
+    // Экран снимается как есть — с рамкой видео, кнопками и подсказкой; поверх
+    // этого кадра выделяется снимок, как обычным «снимком области».
+    const shot = await window.regionApi.snapBegin().catch((err) => ({ ok: false, error: err.message }));
+    snapStarting = false;
+    if (!shot?.ok) {
+      showNote(I18N.t("Снимок не получился: {0}", shot?.error || shot?.reason || "?"), true);
+      return;
+    }
+    snapLayer.src = shot.dataUrl;
+    snapLayer.hidden = false;
+    snapMode = true;
+    videoRect = rect ? { ...rect } : null;
+    rect = null;
+    mode = "idle";
+    document.body.classList.add("snap-mode");
+    sel.classList.remove("on", "adjust", "busy");
+    actions.hidden = true;
+    hint.classList.remove("docked");
+    hint.style.left = "";
+    hint.style.top = "";
+    setHint("snap", false);
+  }
+
+  function exitSnapMode() {
+    if (!snapMode) return;
+    snapMode = false;
+    snapLayer.hidden = true;
+    snapLayer.removeAttribute("src");
+    window.regionApi.snapEnd?.();
+    document.body.classList.remove("snap-mode");
+    rect = videoRect ? { ...videoRect } : rect;
+    videoRect = null;
+    if (rect) {
+      mode = "adjust";
+      sel.classList.add("on", "adjust");
+      actions.hidden = false;
+      setHint("adjust", false);
+      paint();
+      requestAnimationFrame(() => rect && dock());
+    } else {
+      setHint("idle", false);
+    }
+  }
+
+  async function takeSnap(copy = false) {
+    if (!(mode === "adjust" && rect)) {
+      setHint("need-draw", false);
+      return;
+    }
+    sel.classList.remove("flash");
+    void sel.offsetWidth;
+    sel.classList.add("flash");
+    const result = await window.regionApi.snap({ ...rect }, copy).catch((err) => ({ ok: false, error: err.message }));
+    if (result?.ok) {
+      exitSnapMode();
+      showNote(copy ? I18N.t("Снимок рамки скопирован в буфер") : I18N.t("Снимок сохранён · {0} × {1}", result.width, result.height));
+    } else {
+      showNote(I18N.t("Снимок не получился: {0}", result?.error || result?.reason || "?"), true);
+    }
+  }
+
+  if (intent === "video") {
+    snapButton.hidden = false;
+    const snapKey = document.getElementById("snap-key");
+    if (shotKey) snapKey.textContent = shotKey;
+    else snapKey.hidden = true;
+    snapButton.addEventListener("click", () => void enterSnapMode());
+    document.getElementById("snap-copy").addEventListener("click", () => void takeSnap(true));
+    document.getElementById("snap-take").addEventListener("click", () => void takeSnap(false));
+    document.getElementById("snap-back").addEventListener("click", () => exitSnapMode());
+    const takeKey = document.getElementById("snap-take-key");
+    if (takeKey && shotKey) takeKey.textContent = `Enter / ${shotKey}`;
+    // Клавиша снимка: первое нажатие — режим снимка, второе — снять.
+    window.regionApi.onSnapRequest?.(() => {
+      if (!snapMode) void enterSnapMode();
+      else if (mode === "adjust" && rect) void takeSnap(false);
+    });
+  }
   // Кнопка подписана той же клавишей, которой рамка подтверждается повторно.
   const acceptKey = document.getElementById("accept-key");
   if (acceptKey && hotkey) acceptKey.textContent = hotkey;
@@ -362,10 +551,12 @@
       }
     }
     renderHint();
+    if (rect) dock();
   }
 
   window.addEventListener("contextmenu", (event) => {
     event.preventDefault();
-    done(null);
+    if (snapMode) exitSnapMode();
+    else done(null);
   });
 })();

@@ -6,6 +6,9 @@
     <title>Screen Revesane</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="guide.css" />
+    <link rel="stylesheet" href="themes.css" />
+    <link rel="stylesheet" href="scenes.css" />
+    <script src="boot-theme.js"></script>
   </head>
   <body>
     <div class="app">
@@ -19,6 +22,20 @@
         </div>
         <div class="titlebar-spacer"></div>
         <div class="win-actions">
+          <div class="theme-pop">
+            <button id="btn-theme" class="win-btn" title="Тема оформления" aria-label="Тема оформления" data-i18n-title="Тема оформления" data-i18n-aria-label="Тема оформления"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5C21 6.6 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="7.5" cy="11" r="1.3" fill="currentColor"/><circle cx="10" cy="7" r="1.3" fill="currentColor"/><circle cx="14.5" cy="7" r="1.3" fill="currentColor"/><circle cx="17" cy="10.5" r="1.3" fill="currentColor"/></svg></button>
+            <div class="theme-menu" id="theme-menu" hidden>
+              <div class="theme-menu-title" data-i18n="Тема оформления">Тема оформления</div>
+              <button class="theme-item" data-theme="teal" data-pick="teal"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Бирюза">Бирюза</span></button>
+              <button class="theme-item" data-theme="ocean" data-pick="ocean"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Океан">Океан</span></button>
+              <button class="theme-item" data-theme="jungle" data-pick="jungle"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Джунгли">Джунгли</span></button>
+              <button class="theme-item" data-theme="gold" data-pick="gold"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Золото">Золото</span></button>
+              <button class="theme-item" data-theme="ruby" data-pick="ruby"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Рубин">Рубин</span></button>
+              <button class="theme-item" data-theme="ice" data-pick="ice"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Лёд">Лёд</span></button>
+              <button class="theme-item" data-theme="amber" data-pick="amber"><span class="ti-art"></span><span class="ti-dot"></span><span data-i18n="Янтарь">Янтарь</span></button>
+              <button class="theme-item theme-more" id="theme-more"><span data-i18n="Своя картинка фона…">Своя картинка фона…</span></button>
+            </div>
+          </div>
           <button id="btn-compact" class="win-btn" title="Компактный режим" aria-label="Компактный режим" data-i18n-title="Компактный режим" data-i18n-aria-label="Компактный режим"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
           <button id="btn-min" class="win-btn" title="Свернуть" aria-label="Свернуть" data-i18n-title="Свернуть" data-i18n-aria-label="Свернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
           <button id="btn-max" class="win-btn" title="Развернуть" aria-label="Развернуть" data-i18n-title="Развернуть" data-i18n-aria-label="Развернуть"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg></button>
@@ -282,6 +299,7 @@
           <div class="settings">
             <nav class="settings-nav">
               <button class="snav is-active" data-section="general" data-i18n="Общий">Общий</button>
+              <button class="snav" data-section="theme" data-i18n="Оформление">Оформление</button>
               <button class="snav" data-section="output" data-i18n="Вывод">Вывод</button>
               <button class="snav" data-section="audio" data-i18n="Звук">Звук</button>
               <button class="snav" data-section="pointer" data-i18n="Мышь">Мышь</button>
@@ -503,6 +521,31 @@
                 <div class="info-line"><span data-i18n="Микрофон">Микрофон</span><b id="audio-mic" data-i18n="выкл">выкл</b></div>
                 <div class="info-line"><span data-i18n="Системный звук">Системный звук</span><b id="audio-system" data-i18n="выкл">выкл</b></div>
                 <div class="info-line"><span data-i18n="Кодек звука в видео">Кодек звука в видео</span><b data-i18n="AAC 44.1 кГц, стерео">AAC 44.1 кГц, стерео</b></div>
+              </div>
+
+              <div class="sect" id="sect-theme">
+                <h3 class="sect-title" data-i18n="Оформление">Оформление</h3>
+                <div class="theme-grid" id="theme-grid">
+                  <button class="theme-tile" data-theme="teal" data-pick="teal"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Бирюза">Бирюза</b></button>
+                  <button class="theme-tile" data-theme="ocean" data-pick="ocean"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Океан">Океан</b></button>
+                  <button class="theme-tile" data-theme="jungle" data-pick="jungle"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Джунгли">Джунгли</b></button>
+                  <button class="theme-tile" data-theme="gold" data-pick="gold"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Золото">Золото</b></button>
+                  <button class="theme-tile" data-theme="ruby" data-pick="ruby"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Рубин">Рубин</b></button>
+                  <button class="theme-tile" data-theme="ice" data-pick="ice"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Лёд">Лёд</b></button>
+                  <button class="theme-tile" data-theme="amber" data-pick="amber"><span class="tt-art"></span><span class="tt-ui"><i></i><i></i><i></i></span><b data-i18n="Янтарь">Янтарь</b></button>
+                </div>
+                <div class="field">
+                  <span data-i18n="Своя картинка фона">Своя картинка фона</span>
+                  <span class="field-actions">
+                    <b class="mono" id="theme-image-name" data-i18n="не выбрана">не выбрана</b>
+                    <button class="ghost small" id="btn-theme-image" data-i18n="Выбрать…">Выбрать…</button>
+                    <button class="ghost small" id="btn-theme-image-clear" data-i18n="Убрать">Убрать</button>
+                  </span>
+                </div>
+                <p class="sect-note" data-i18n="Тема меняет цвета и фон окна сразу, без перезапуска. Своя картинка ложится поверх фона темы, а цвета кнопок берутся из выбранной темы. Картинка копируется в папку настроек — исходный файл можно перемещать.">
+                  Тема меняет цвета и фон окна сразу, без перезапуска. Своя картинка ложится поверх фона темы,
+                  а цвета кнопок берутся из выбранной темы. Картинка копируется в папку настроек — исходный файл можно перемещать.
+                </p>
               </div>
 
               <div class="sect" id="sect-pointer">
@@ -754,6 +797,13 @@
               </button>
             </div>
             <div class="doc-sep"></div>
+            <h3 data-i18n="Видео: как это работает">Видео: как это работает</h3>
+            <div class="help-videos">
+              <figure><div data-scene="region"></div><figcaption data-i18n="Выделение области, выбор формата и запись">Выделение области, выбор формата и запись</figcaption></figure>
+              <figure><div data-scene="compact"></div><figcaption data-i18n="Компактный режим: мини-пульт поверх окон">Компактный режим: мини-пульт поверх окон</figcaption></figure>
+              <figure><div data-scene="self"></div><figcaption data-i18n="Кнопка «Своё окно»: в кадре или скрыто">Кнопка «Своё окно»: в кадре или скрыто</figcaption></figure>
+            </div>
+            <div class="doc-sep"></div>
             <h3 data-i18n="Как записать">Как записать</h3>
             <p data-i18n="Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок — и нажмите круглую кнопку. Пока идёт запись, кнопка останавливает её, рядом доступна пауза. Пока приложение записывает, его собственное окно можно исключить из кадра (настройки → «Общий»).">
               Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок —
@@ -793,37 +843,49 @@
             <span class="mini-timer" id="mini-timer">00:00</span>
             <span class="mini-meta" id="mini-meta" data-i18n="готов">готов</span>
             <span class="grow"></span>
-            <button class="win-btn" id="mini-expand" title="Обычное окно" aria-label="Обычное окно" data-i18n-title="Обычное окно" data-i18n-aria-label="Обычное окно">&#10530;</button>
+            <button class="win-btn" id="mini-expand" title="Обычное окно" aria-label="Обычное окно" data-i18n-title="Обычное окно" data-i18n-aria-label="Обычное окно"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
             <button class="win-btn win-btn-close" id="mini-close" title="Закрыть" aria-label="Закрыть" data-i18n-title="Закрыть" data-i18n-aria-label="Закрыть">&#215;</button>
           </div>
 
+          <div class="mini-modes" id="mini-modes">
+              <button class="mini-mode" data-mini-preset="screen:video" title="Запись экрана" data-i18n-title="Запись экрана"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+              <button class="mini-mode" data-mini-preset="window:video" title="Запись окна" data-i18n-title="Запись окна"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></button>
+              <button class="mini-mode" data-mini-preset="region:video" title="Выделить и записать видео" data-i18n-title="Выделить и записать видео"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/></svg></button>
+              <button class="mini-mode" data-mini-preset="audio:video" title="Аудио запись" data-i18n-title="Аудио запись"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+              <span class="mini-mode-sep"></span>
+              <button class="mini-mode is-shot" data-mini-preset="screen:shot" title="Скриншот экрана" data-i18n-title="Скриншот экрана"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+              <button class="mini-mode is-shot" data-mini-preset="window:shot" title="Скриншот окна" data-i18n-title="Скриншот окна"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="12" cy="14.5" r="2.6"/></svg></button>
+              <button class="mini-mode is-shot" data-mini-preset="region:shot" title="Скриншот области" data-i18n-title="Скриншот области"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+
           <div class="mini-main">
-            <button class="mini-rec" id="mini-primary"><span id="mini-primary-label" data-i18n="Записать">Записать</span></button>
-            <div class="mini-actions">
-              <button class="mini-act" id="mini-pause" title="Пауза" data-i18n-title="Пауза">&#10074;&#10074;</button>
-              <button class="mini-act" id="mini-stop" title="Стоп" data-i18n-title="Стоп">&#9632;</button>
+            <button class="mini-rec" id="mini-primary">
+              <span class="mini-rec-glyph"></span>
+              <span class="mini-rec-label" id="mini-primary-label">REC</span>
+            </button>
+            <div class="mini-side">
+              <div class="mini-mode-name" id="mini-mode" data-i18n="Запись экрана">Запись экрана</div>
+              <label class="mini-format-wrap">
+                <span data-i18n="Формат">Формат</span>
+                <select id="mini-format"></select>
+              </label>
+              <div class="mini-actions">
+                <button class="mini-act" id="mini-pause" title="Пауза" data-i18n-title="Пауза"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13.4" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none"/></svg></button>
+                <button class="mini-act is-stop" id="mini-stop" title="Стоп" data-i18n-title="Стоп"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/></svg></button>
+                <button class="mini-act" id="mini-shot" title="Снимок области" data-i18n-title="Снимок области"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
             </div>
           </div>
 
-          <div class="mini-row">
-            <span class="mini-key" data-i18n="Режим">Режим</span>
-            <span class="mini-val" id="mini-mode" data-i18n="Запись экрана">Запись экрана</span>
-            <span class="grow"></span>
-            <span class="mini-format" id="mini-format">MP4</span>
+          <div class="mini-audio">
+            <button class="mini-toggle" id="mini-mic" title="Микрофон" data-i18n-title="Микрофон"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span class="mini-meter"><span id="mini-mic-fill"></span></span></button>
+            <button class="mini-toggle" id="mini-system" title="Звук системы" data-i18n-title="Звук системы"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span class="mini-meter"><span id="mini-system-fill"></span></span></button>
           </div>
 
-          <div class="mini-row mini-audio">
-            <button class="mini-toggle" id="mini-mic" data-i18n="Микрофон">Микрофон</button>
-            <div class="mini-meter"><span id="mini-mic-fill"></span></div>
-            <button class="mini-toggle" id="mini-system" data-i18n="Система">Система</button>
-            <div class="mini-meter"><span id="mini-system-fill"></span></div>
-          </div>
-
-          <div class="mini-row mini-links">
-            <button class="mini-link" id="mini-history" data-i18n="История">История</button>
-            <button class="mini-link" id="mini-settings" data-i18n="Настройки">Настройки</button>
-            <span class="grow"></span>
-            <button class="mini-link" id="mini-library-clear" data-i18n="Очистить">Очистить</button>
+          <div class="mini-foot">
+            <button class="mini-link" id="mini-history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="История">История</span></button>
+            <span class="mini-last" id="mini-last"></span>
+            <button class="mini-link" id="mini-settings" title="Настройки" data-i18n-title="Настройки"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
           </div>
         </section>
       </main>

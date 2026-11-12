@@ -1,7 +1,7 @@
 {
   "name": "screen-revesane",
   "productName": "Screen Revesane",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Свой рекордер экрана: весь экран, окно или выделенная область, с микрофоном и системным звуком",
   "main": "src/main/main.js",
   "type": "commonjs",
