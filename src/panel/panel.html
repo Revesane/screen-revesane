@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title data-i18n="Screen Revesane — панель записи">Screen Revesane — панель записи</title>
     <style>
+      :root { --acc: 54 203 176; }
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
       .panel {
@@ -24,7 +25,7 @@
         width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(41, 52, 66, 0.9);
         background: rgba(28, 37, 48, 0.9); color: #b9c6d4; display: grid; place-items: center; cursor: pointer;
       }
-      button:hover { border-color: rgba(54, 203, 176, 0.6); color: #36cbb0; }
+      button:hover { border-color: rgb(var(--acc) / 0.6); color: rgb(var(--acc)); }
       button.stop:hover { border-color: #e05b57; color: #e05b57; }
       svg { width: 15px; height: 15px; fill: currentColor; }
 
@@ -32,9 +33,9 @@
       body.ball .panel {
         border-radius: 50%; padding: 0; justify-content: center; gap: 0;
         background: radial-gradient(circle at 32% 28%, #24333f, rgba(16, 19, 24, 0.96));
-        border: 2px solid rgba(54, 203, 176, 0.55);
+        border: 2px solid rgb(var(--acc) / 0.55);
       }
-      body.ball .timer { font-size: 19px; color: #36cbb0; }
+      body.ball .timer { font-size: 19px; color: rgb(var(--acc)); }
       body.ball .label, body.ball .btn-pause, body.ball .btn-shot, body.ball .lamp { display: none; }
       body.ball .btn-stop {
         position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px;

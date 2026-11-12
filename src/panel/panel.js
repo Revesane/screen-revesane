@@ -3,6 +3,10 @@
 (() => {
   const qs = new URLSearchParams(location.search);
   I18N.setLang(qs.get("lang") === "en" ? "en" : "ru");
+  // Акцент выбранной темы — как у главного окна.
+  if (/^\d{1,3} \d{1,3} \d{1,3}$/.test(qs.get("accent") || "")) {
+    document.documentElement.style.setProperty("--acc", qs.get("accent"));
+  }
   I18N.applyDom();
   window.panelApi.onLang((lang) => {
     I18N.setLang(lang);

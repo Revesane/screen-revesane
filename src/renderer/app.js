@@ -1034,13 +1034,21 @@ function renderPresetKeys() {
   });
 }
 
+/** Нажата только клавиша-модификатор: ждём основную, не ругаемся. */
+function isModifierOnly(event) {
+  return ["Control", "Alt", "Shift", "Meta", "AltGraph", "OS"].includes(event.key) ||
+    /^(Control|Alt|Shift|Meta|OS)(Left|Right)$/.test(event.code || "");
+}
+
 /** Событие клавиатуры → accelerator Electron. */
 function acceleratorFromEvent(event) {
   const key = normalizeKey(event);
   if (!key) return null;
   const mods = [];
-  if (event.ctrlKey) mods.push("Control");
-  if (event.altKey) mods.push("Alt");
+  // AltGr в Windows приходит как Ctrl+Alt — это и есть Ctrl+Alt.
+  const altGraph = event.getModifierState?.("AltGraph");
+  if (event.ctrlKey || altGraph) mods.push("Control");
+  if (event.altKey || altGraph) mods.push("Alt");
   if (event.shiftKey) mods.push("Shift");
   if (event.metaKey) mods.push("Super");
   // Одиночный символ перехватил бы ввод во всех программах.
@@ -1049,6 +1057,20 @@ function acceleratorFromEvent(event) {
 }
 
 function normalizeKey(event) {
+  // Физическая клавиша важнее символа: в русской раскладке «S» — это «ы»,
+  // а с Ctrl+Alt цифры и буквы иногда приходят другим символом.
+  const code = String(event.code || "");
+  let match = /^Key([A-Z])$/.exec(code);
+  if (match) return match[1];
+  match = /^Digit([0-9])$/.exec(code);
+  if (match) return match[1];
+  match = /^Numpad([0-9])$/.exec(code);
+  if (match) return `num${match[1]}`;
+  const codes = {
+    Minus: "-", Equal: "=", Comma: ",", Period: ".", Slash: "/", Semicolon: ";",
+    Quote: "'", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Backquote: "`", Space: "Space",
+  };
+  if (codes[code]) return codes[code];
   const raw = event.key;
   if (/^F\d{1,2}$/.test(raw)) return raw;
   if (raw.length === 1) {
@@ -1119,6 +1141,8 @@ function bindHotkeyEditor() {
         renderHotkeys();
         return;
       }
+      // Сначала зажимают Ctrl / Alt — это ещё не сочетание.
+      if (isModifierOnly(event)) return;
       const accelerator = acceleratorFromEvent(event);
       if (!accelerator) {
         toast(I18N.t("Нужен F-ряд или сочетание с Ctrl / Alt / Shift / Win"), "error");
@@ -1872,12 +1896,9 @@ async function takeRegionScreenshot() {
     // было понять, дошло ли дело до редактора.
     const size = `${Math.round(picked.region.width)}×${Math.round(picked.region.height)}`;
     if (picked.copy) {
-      // Ctrl+C в оверлее: снять и положить в буфер, без редактора.
-      // Буфер пишется только из сфокусированного документа, а после оверлея
-      // фокус остаётся у чужого окна — поэтому сначала поднимаем своё.
-      await window.api.focusWindow().catch(() => {});
-      await sleep(160);
-      const copied = await copyDataUrlToClipboard(dataUrl);
+      // Ctrl+C в оверлее: снять и положить в буфер, без редактора и без
+      // показа окна программы — буфер пишет main, фокус ему не нужен.
+      const copied = await window.api.copyImage(dataUrl);
       uiLog("info", `снимок области ${size} → буфер обмена (${copied?.ok ? "ок" : "не удалось"})`, "shot");
       if (copied?.ok) toast(I18N.t("Снимок области скопирован в буфер обмена"), "ok");
       else toast(I18N.t("Снимок снят, но в буфер не попал: {0}", copied?.error || I18N.t("нет доступа к буферу")), "error");
@@ -3411,6 +3432,8 @@ const SWITCHES = {
   "sw-wm-shadow": "watermarkShadow",
   "sw-smartTips": "smartTips",
   "sw-checkUpdates": "checkUpdates",
+  "sw-closeToTray": "closeToTray",
+  "sw-autostart": "autostart",
 };
 
 function buildCodecSelect(select, allowed, labels, current) {
@@ -5182,9 +5205,20 @@ async function boot() {
   const firstRun = !state.settings.tourDone;
   const updated = !firstRun && Boolean(version) && state.settings.tourVersion !== version;
   if ((firstRun || updated) && !state.info?.automation && !compactMode) {
-    setTimeout(() => {
-      if (!state.recording && !compactMode) tour.start({ updatedTo: updated ? version : "" });
-    }, 900);
+    const startTour = () =>
+      setTimeout(() => {
+        if (!state.recording && !compactMode) tour.start({ updatedTo: updated ? version : "" });
+      }, 900);
+    // Запуск из автозапуска: окно в трее, тур ждёт, пока его откроют.
+    if (document.visibilityState === "visible") startTour();
+    else {
+      const onVisible = () => {
+        if (document.visibilityState !== "visible") return;
+        document.removeEventListener("visibilitychange", onVisible);
+        startTour();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+    }
   }
 }
 

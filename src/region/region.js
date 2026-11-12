@@ -37,6 +37,18 @@
   // дисплея, потому что окно оверлея может быть ниже экрана на панель задач.
   // Без этого картинка сжималась по высоте, и рамка выделяла не то, что видно.
   const query = new URLSearchParams(location.search);
+  // Подпись клавиши — коротко, как на клавиатуре: Ctrl, Win.
+  const prettyAccel = (accel) =>
+    String(accel || "").replace(/Control|CommandOrControl/g, "Ctrl").replace(/Super|Meta/g, "Win");
+  // Цвета выбранной темы (rgb акцента, тёмный текст на нём, светлый вариант).
+  const accent = query.get("accent");
+  if (/^\d{1,3} \d{1,3} \d{1,3}$/.test(accent || "")) {
+    document.documentElement.style.setProperty("--acc", accent);
+    const ink = query.get("ink");
+    const hi = query.get("hi");
+    if (/^#[0-9a-f]{6}$/i.test(ink || "")) document.documentElement.style.setProperty("--acc-ink", ink);
+    if (/^#[0-9a-f]{6}$/i.test(hi || "")) document.documentElement.style.setProperty("--acc-hi", hi);
+  }
   const displayW = Number(query.get("w")) || 0;
   const displayH = Number(query.get("h")) || 0;
   if (displayW > 0 && displayH > 0) {
@@ -49,7 +61,7 @@
   const intent = query.get("intent") === "shot" ? "shot" : "video";
   // Клавиша, которой рамку можно подтвердить повторно: подписываем ею кнопку
   // и подсказку вместо жёсткого «Enter».
-  const hotkey = String(query.get("hotkey") || "").trim();
+  const hotkey = prettyAccel(query.get("hotkey")).trim();
   const confirmKey = hotkey || "Enter";
   // Подписи считаем при каждом рендере: смена языка сразу обновляет их.
   const acceptLabel = () => I18N.t(intent === "shot" ? "Снимок" : "Записать");
@@ -198,7 +210,7 @@
   // Режим снимка внутри выделения видео и рамка видео, к которой вернёмся.
   let snapMode = false;
   let videoRect = null;
-  const shotKey = query.get("shotKey") || "";
+  const shotKey = prettyAccel(query.get("shotKey"));
   let hintDim = false;
 
   function renderHint() {

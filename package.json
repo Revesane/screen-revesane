@@ -1,7 +1,7 @@
 {
   "name": "screen-revesane",
   "productName": "Screen Revesane",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Свой рекордер экрана: весь экран, окно или выделенная область, с микрофоном и системным звуком",
   "main": "src/main/main.js",
   "type": "commonjs",
@@ -62,10 +62,11 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
       "shortcutName": "Screen Revesane",
-      "artifactName": "Screen-Revesane-Setup-${version}.${ext}"
+      "artifactName": "Screen-Revesane-Setup-${version}.${ext}",
+      "include": "build/installer.nsh"
     }
   }
 }

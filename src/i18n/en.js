@@ -621,6 +621,15 @@
     // Тур по программе
     "Добро пожаловать!": "Welcome!",
     "Программа обновлена до версии {0}": "Updated to version {0}",
+    // Трей и автозапуск
+    "Крестик прячет окно в трей": "The close button hides the window to the tray",
+    "Запускать при включении компьютера (в трее)": "Start with the computer (in the tray)",
+    "Программа работает в трее: горячие клавиши и запись продолжают действовать. Открыть — значок у часов.":
+      "The app keeps running in the tray: hotkeys and recording still work. Open it from the icon near the clock.",
+    "Открыть Screen Revesane": "Open Screen Revesane",
+    "Остановить запись": "Stop recording",
+    "Начать запись": "Start recording",
+    "Выйти из программы": "Quit",
     "Покажем, что где находится и что появилось нового. Тур можно пропустить и повторить позже в «Помощи».":
       "Here's where everything is and what's new. You can skip the tour and replay it later from “Help”.",
     "За минуту покажем, как здесь всё устроено. Тур можно пропустить и повторить позже в «Помощи».":

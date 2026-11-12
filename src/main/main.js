@@ -1,7 +1,7 @@
 "use strict";
 
 const {
-  app, BrowserWindow, Menu, clipboard, crashReporter, desktopCapturer, dialog, globalShortcut, ipcMain,
+  app, BrowserWindow, Menu, Tray, clipboard, crashReporter, desktopCapturer, dialog, globalShortcut, ipcMain,
   nativeImage, net, screen, session, shell,
 } = require("electron");
 const fs = require("node:fs");
@@ -41,6 +41,14 @@ try {
 const SELFTEST = process.argv.includes("--selftest");
 const SELFTEST_MODES = process.argv.includes("--selftest-modes");
 const UI_SHOTS = process.argv.includes("--ui-shots");
+/** Автопрогоны: без трея, без второго экземпляра, без автозапуска. */
+const AUTOMATION = SELFTEST || SELFTEST_MODES || UI_SHOTS;
+
+// Одна копия программы: повторный запуск (ярлыком, из автозапуска) только
+// показывает уже открытое окно — иначе две копии делили бы горячие клавиши.
+if (!AUTOMATION && !app.requestSingleInstanceLock()) {
+  app.exit(0);
+}
 const ROOT = path.join(__dirname, "..", "..");
 /** Иконка окна: лежит внутри src, поэтому едет с любой сборкой и не зависит от кэша значков Windows. */
 const APP_ICON = path.join(ROOT, "src", "assets", "icon.png");
@@ -134,6 +142,12 @@ const DEFAULT_SETTINGS = {
   // Обновления: проверять при запуске и раз в 6 часов; пропущенная версия.
   checkUpdates: true,
   skipVersion: "",
+  // Крестик прячет окно в трей (горячие клавиши и запись продолжают работать).
+  closeToTray: true,
+  // Запуск при входе в систему — сразу в трей.
+  autostart: false,
+  // Подсказку «программа в трее» показываем один раз.
+  trayHintShown: false,
   // Оформление: тема и своя картинка фона (копия в папке настроек).
   theme: "teal",
   themeImage: "",
@@ -345,6 +359,170 @@ function scheduleUpdateChecks() {
   setInterval(run, UPDATE_INTERVAL_MS).unref?.();
 }
 
+// ─────────────────────────────────────────────────────────── цвета темы для окон
+
+/**
+ * Акцент темы для отдельных окон (выделение области, плавающая панель):
+ * rgb акцента, тёмный текст на нём и светлый вариант. Совпадает с themes.css.
+ */
+const THEME_ACCENTS = {
+  teal: ["43 214 198", "#04211f", "#5ff0e0"],
+  ocean: ["56 189 248", "#032235", "#9be3ff"],
+  jungle: ["74 222 128", "#04210f", "#a7f3c0"],
+  gold: ["245 183 72", "#2a1803", "#ffe0a0"],
+  ruby: ["239 68 68", "#2a0505", "#ff9a9a"],
+  ice: ["103 232 249", "#032a33", "#c4f6ff"],
+  amber: ["234 179 8", "#271a02", "#fde68a"],
+};
+
+function themeQuery() {
+  const [accent, ink, hi] = THEME_ACCENTS[readSettings().theme] || THEME_ACCENTS.teal;
+  return { accent, ink, hi };
+}
+
+// ─────────────────────────────────────────────────────────── трей и автозапуск
+
+let tray = null;
+/** Выход по-настоящему (меню трея, Cmd+Q, установка обновления), а не «спрятать». */
+let appQuitting = false;
+
+/** Запущены из автозапуска — окно не показываем, только значок в трее. */
+function launchedHidden() {
+  if (process.argv.includes("--hidden")) return true;
+  if (process.platform !== "darwin") return false;
+  try {
+    return Boolean(app.getLoginItemSettings().wasOpenedAtLogin);
+  } catch {
+    return false;
+  }
+}
+const START_HIDDEN = !AUTOMATION && launchedHidden();
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
+    return;
+  }
+  if (process.platform === "darwin") void app.dock?.show();
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function hideToTray() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.hide();
+  // На Mac «спрятать» — это и окно, и значок в Dock: остаётся значок в строке меню.
+  if (process.platform === "darwin") app.dock?.hide();
+  log.info("win", "окно спрятано в трей");
+  const s = readSettings();
+  if (!s.trayHintShown && tray) {
+    void writeSettings({ trayHintShown: true });
+    if (process.platform === "win32") {
+      try {
+        tray.displayBalloon({
+          title: "Screen Revesane",
+          content: I18N.t("Программа работает в трее: горячие клавиши и запись продолжают действовать. Открыть — значок у часов."),
+          iconType: "info",
+        });
+      } catch {
+        /* уведомления выключены — не страшно */
+      }
+    }
+  }
+}
+
+function trayIcon() {
+  const image = nativeImage.createFromPath(APP_ICON);
+  if (image.isEmpty()) return image;
+  const size = process.platform === "darwin" ? 18 : 16;
+  return image.resize({ width: size, height: size, quality: "best" });
+}
+
+/** Меню значка собирается при каждом открытии: пункт записи зависит от состояния. */
+function trayMenu() {
+  const send = (channel) => () => mainWindow?.webContents.send(channel);
+  return Menu.buildFromTemplate([
+    { label: I18N.t("Открыть Screen Revesane"), click: showMainWindow },
+    { type: "separator" },
+    { label: capture.active ? I18N.t("Остановить запись") : I18N.t("Начать запись"), click: send("hotkey:toggle") },
+    { label: I18N.t("Выделить и записать видео"), enabled: !capture.active, click: send("hotkey:region") },
+    { label: I18N.t("Снимок области"), click: send("hotkey:regionShot") },
+    { type: "separator" },
+    {
+      label: I18N.t("Выйти из программы"),
+      click: () => {
+        appQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+}
+
+function createTray() {
+  if (tray || AUTOMATION) return;
+  try {
+    tray = new Tray(trayIcon());
+  } catch (err) {
+    log.warn("win", `значок в трее не создан: ${err.message}`);
+    tray = null;
+    return;
+  }
+  tray.setToolTip("Screen Revesane");
+  if (process.platform === "darwin") {
+    // На Mac по клику по значку в строке меню принято открывать меню.
+    tray.on("click", () => tray.popUpContextMenu(trayMenu()));
+  } else {
+    tray.on("click", showMainWindow);
+    tray.on("right-click", () => tray.popUpContextMenu(trayMenu()));
+  }
+  log.info("win", "значок в трее создан");
+}
+
+/**
+ * Автозапуск при входе в систему: Windows — ключ Run с флагом --hidden,
+ * Mac — объект входа. Из исходников не регистрируем: туда попал бы
+ * electron.exe, а не программа.
+ */
+function applyAutostart(on) {
+  if (!app.isPackaged) {
+    log.info("app", `автозапуск ${on ? "вкл" : "выкл"}: из исходников не регистрируется`);
+    return { ok: false, reason: "dev" };
+  }
+  try {
+    if (process.platform === "win32") {
+      app.setLoginItemSettings({ openAtLogin: Boolean(on), args: ["--hidden"] });
+    } else {
+      app.setLoginItemSettings({ openAtLogin: Boolean(on), openAsHidden: true });
+    }
+    log.info("app", `автозапуск при входе в систему: ${on ? "вкл" : "выкл"}`);
+    return { ok: true };
+  } catch (err) {
+    log.warn("app", `автозапуск не изменён: ${err.message}`);
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * При старте: переключатель в настройках — как в системе. Автозапуск могли
+ * включить галочкой в установщике или убрать вручную, и программа не должна
+ * молча перебивать это своей настройкой.
+ */
+async function syncAutostart() {
+  if (!app.isPackaged || AUTOMATION) return;
+  try {
+    const now = Boolean(
+      app.getLoginItemSettings(process.platform === "win32" ? { args: ["--hidden"] } : undefined).openAtLogin,
+    );
+    if (now !== (readSettings().autostart === true)) {
+      await writeSettings({ autostart: now });
+      log.info("app", `автозапуск в системе: ${now ? "вкл" : "выкл"} — настройка обновлена`);
+    }
+  } catch (err) {
+    log.warn("app", `проверка автозапуска: ${err.message}`);
+  }
+}
+
 // ─────────────────────────────────────────────────────────── окна
 
 /**
@@ -462,7 +640,20 @@ function createMainWindow() {
   mainWindow.loadFile(path.join(ROOT, "src", "renderer", "index.html"), {
     query: { lang: resolveLang(readSettings().language), theme: String(readSettings().theme || "teal") },
   });
-  mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.once("ready-to-show", () => {
+    if (START_HIDDEN && tray) {
+      if (process.platform === "darwin") app.dock?.hide();
+      log.info("win", "запуск из автозапуска: окно в трее");
+      return;
+    }
+    mainWindow.show();
+  });
+  // Крестик прячет в трей, а не закрывает: горячие клавиши и запись живут дальше.
+  mainWindow.on("close", (event) => {
+    if (appQuitting || !tray || readSettings().closeToTray === false) return;
+    event.preventDefault();
+    hideToTray();
+  });
   // На Windows это WDA_EXCLUDEFROMCAPTURE: наше окно не попадает в запись,
   // но остаётся видимым на экране.
   try {
@@ -845,6 +1036,8 @@ async function pickRegion(intent = "video", opts = {}) {
         selfHidden: readSettings().hideSelf !== false ? "1" : "0",
         // Язык интерфейса оверлея — сразу, без ожидания события от main.
         lang: resolveLang(readSettings().language),
+        // Цвета выбранной темы: рамка и кнопки — под стать главному окну.
+        ...themeQuery(),
       },
     });
     // Битая загрузка иначе оставляла скрытое окно навсегда: выделение области
@@ -2376,6 +2569,7 @@ function registerIpc() {
     const next = await writeSettings(patch);
     let hotkeyErrors = [];
     if (patch && typeof patch === "object" && "hotkeys" in patch) hotkeyErrors = registerHotkeys();
+    if (patch && typeof patch === "object" && "autostart" in patch) applyAutostart(patch.autostart === true);
     if (patch && typeof patch === "object" && "showPanel" in patch && !capture.active) hidePanel();
     const lang = resolveLang(next.language);
     if (patch && typeof patch === "object" && "language" in patch) {
@@ -2569,9 +2763,7 @@ function registerIpc() {
   ipcMain.handle("win:focus", () => {
     if (!mainWindow) return false;
     try {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
+      showMainWindow();
       return true;
     } catch {
       return false;
@@ -2586,7 +2778,9 @@ function registerIpc() {
   });
   ipcMain.on("win:restore", () => {
     if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
+    // Окно, спрятанное в трей, после записи само не всплывает — только свёрнутое.
+    if (!mainWindow.isMinimized()) return;
+    mainWindow.restore();
     mainWindow.show();
   });
   ipcMain.handle("win:contentProtection", (_e, enabled) => {
@@ -2661,7 +2855,7 @@ function showPanel(style) {
       /* не критично */
     }
     panelWindow.loadFile(path.join(ROOT, "src", "panel", "panel.html"), {
-      query: { lang: resolveLang(readSettings().language) },
+      query: { lang: resolveLang(readSettings().language), ...themeQuery() },
     });
     panelWindow.webContents.once("did-finish-load", () => {
       panelWindow?.webContents.send("panel:style", ball ? "ball" : "full");
@@ -2973,6 +3167,8 @@ app.whenReady().then(async () => {
   }
   installDisplayMediaHandler();
   registerIpc();
+  createTray();
+  await syncAutostart();
   // Язык выбирается до создания окон: первые же строки интерфейса и сообщений
   // main-процесса должны быть на нужном языке.
   I18N.setLang(resolveLang(readSettings().language));
@@ -2985,11 +3181,20 @@ app.whenReady().then(async () => {
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    else if (mainWindow && !mainWindow.isVisible()) showMainWindow();
   });
+  // Повторный запуск программы — показать окно этой копии.
+  app.on("second-instance", () => showMainWindow());
 });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin" || SELFTEST) app.quit();
+});
+
+// Любой настоящий выход (Cmd+Q, «Выход» в трее, установка обновления) не
+// должен перехватываться крестиком «спрятать в трей».
+app.on("before-quit", () => {
+  appQuitting = true;
 });
 
 app.on("will-quit", () => {
