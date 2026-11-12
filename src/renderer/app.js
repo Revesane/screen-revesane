@@ -1,6 +1,8 @@
 "use strict";
 
 import { Recorder, pickMimeType, mimeToExt, grabStill, grabRegion } from "../recorder/recorder.js";
+import { createTour } from "./tour.js";
+import { createTips } from "./tips.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,6 +40,276 @@ const recorder = new Recorder({
 
 let timerHandle = null;
 let meterHandle = null;
+
+// ───────────────────────────────────────────────── тур и умные подсказки
+
+const tour = createTour({
+  showView: (name) => showView(name),
+  hotkeys: () => state.settings?.hotkeys,
+  onFinish: () => {
+    if (!state.settings?.tourDone) void saveSetting({ tourDone: true });
+  },
+});
+
+const tips = createTips({
+  settings: () => state.settings,
+  save: (patch) => saveSetting(patch),
+  // Во время записи подсказка не должна попасть в кадр: показываем её,
+  // только если окно приложения исключено из захвата.
+  blocked: () =>
+    tour.isOpen() ||
+    compactMode ||
+    (state.recording && state.mode !== "audio" && state.settings?.hideSelf === false),
+});
+
+// ───────────────────────────────────────────────── обновления
+
+/**
+ * Обновление: карточка в боковой панели и строка в «О программе».
+ * phase: idle | available | downloading | ready. Проверку и скачивание
+ * делает main (src/main/updater.js), здесь только показ и кнопки.
+ */
+const updateUi = { info: null, phase: "idle", percent: 0, checked: null };
+
+function renderUpdate() {
+  const card = $("rail-update");
+  const about = $("about-update");
+  const info = updateUi.info;
+  const phase = updateUi.phase;
+  if (about) {
+    let text = null;
+    if (info?.available) text = I18N.t("доступна версия {0}", info.version);
+    else if (updateUi.checked === "latest") text = I18N.t("у вас последняя версия");
+    else if (updateUi.checked === "error") text = I18N.t("не удалось проверить — нет связи с GitHub");
+    if (text) {
+      about.removeAttribute("data-i18n");
+      about.textContent = text;
+    }
+    about.classList.toggle("is-new", Boolean(info?.available));
+  }
+  document.querySelector('.rail-btn[data-view="about"]')?.classList.toggle("has-badge", Boolean(info?.available));
+  if (!card) return;
+  card.hidden = !info?.available || phase === "idle";
+  if (card.hidden) return;
+  const main = $("ru-main");
+  card.classList.toggle("is-ready", phase === "ready");
+  $("ru-bar").hidden = phase !== "downloading";
+  $("ru-fill").style.width = `${updateUi.percent}%`;
+  $("ru-skip").hidden = phase !== "available";
+  if (phase === "ready") {
+    $("ru-title").textContent = I18N.t("Обновление скачано");
+    $("ru-sub").textContent = I18N.t("Версия {0} готова к установке", info.version);
+    main.textContent = /Mac/i.test(navigator.userAgent) ? I18N.t("Открыть установщик") : I18N.t("Установить и перезапустить");
+    main.disabled = false;
+  } else if (phase === "downloading") {
+    $("ru-title").textContent = I18N.t("Доступна версия {0}", info.version);
+    $("ru-sub").textContent = I18N.t("Скачиваю… {0}%", updateUi.percent);
+    main.textContent = I18N.t("Скачиваю…");
+    main.disabled = true;
+  } else {
+    $("ru-title").textContent = I18N.t("Доступна версия {0}", info.version);
+    $("ru-sub").textContent = I18N.t("Сейчас установлена {0}", info.current);
+    main.textContent = info.canInstall ? I18N.t("Обновить") : I18N.t("Скачать на GitHub");
+    main.disabled = false;
+  }
+}
+
+function showUpdate(info) {
+  if (!info?.available) return;
+  updateUi.info = info;
+  if (updateUi.phase === "idle") updateUi.phase = "available";
+  renderUpdate();
+}
+
+async function runUpdateAction() {
+  const info = updateUi.info;
+  if (!info) return;
+  if (updateUi.phase === "ready") {
+    if (state.recording) {
+      toast(I18N.t("Сначала остановите запись — установка закроет программу"), "error");
+      return;
+    }
+    const result = await window.api.installUpdate();
+    if (!result?.ok) toast(I18N.t("Не удалось запустить установщик: {0}", result?.error || "?"), "error");
+    else if (result.mode === "dmg") toast(I18N.t("Перетащите Screen Revesane в «Программы» и запустите заново"), "ok");
+    return;
+  }
+  if (!info.canInstall) {
+    void window.api.openUpdatePage();
+    return;
+  }
+  updateUi.phase = "downloading";
+  updateUi.percent = 0;
+  renderUpdate();
+  const result = await window.api.downloadUpdate();
+  if (result?.ok) {
+    updateUi.phase = "ready";
+  } else {
+    updateUi.phase = "available";
+    toast(I18N.t("Обновление не скачалось: {0}", result?.error || "?"), "error");
+  }
+  renderUpdate();
+}
+
+async function checkUpdateManually() {
+  const button = $("btn-check-update");
+  if (button) {
+    button.disabled = true;
+    button.textContent = I18N.t("Проверяю…");
+  }
+  try {
+    const result = await window.api.checkUpdate();
+    if (!result?.ok) {
+      updateUi.checked = "error";
+      toast(I18N.t("Не удалось проверить обновления: {0}", result?.error || "?"), "error");
+    } else if (result.available) {
+      showUpdate(result);
+      toast(I18N.t("Доступна версия {0} — кнопка «Обновить» слева внизу", result.version), "ok");
+    } else {
+      updateUi.checked = "latest";
+      toast(I18N.t("У вас последняя версия: {0}", result.current), "ok");
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = I18N.t("Проверить обновления");
+    }
+    renderUpdate();
+  }
+}
+
+/** Открыть раздел настроек (для кнопок в подсказках). */
+function openSettingsSection(section) {
+  showView("settings");
+  document.querySelector(`.snav[data-section="${section}"]`)?.click();
+}
+
+/**
+ * Наблюдение за уровнями звука: из него рождаются подсказки «системный звук
+ * молчит», «микрофон молчит» и «микрофон перегружен». Вызывается из циклов
+ * индикаторов (раз в 120 мс) и во время записи, и в простое.
+ */
+const levelWatch = { systemSilentSince: 0, micSilentSince: 0, clipTicks: 0 };
+
+function watchLevels(mic, system) {
+  const s = state.settings || {};
+  const now = Date.now();
+  if (state.recording && s.systemAudio && state.mode !== "audio") {
+    if (system > 0.001) levelWatch.systemSilentSince = 0;
+    else if (!levelWatch.systemSilentSince) levelWatch.systemSilentSince = now;
+    else if (now - levelWatch.systemSilentSince > 12000) {
+      tips.show(
+        "system-silent",
+        "Звук компьютера молчит уже 12 секунд. Если что-то играет, а полоска стоит, проверьте устройство вывода в Windows или источник в карточке «Система».",
+        { action: { label: "Настройки звука", run: () => openSettingsSection("audio") } },
+      );
+    }
+  } else {
+    levelWatch.systemSilentSince = 0;
+  }
+  if (state.recording && s.mic) {
+    if (mic > 0.0015) levelWatch.micSilentSince = 0;
+    else if (!levelWatch.micSilentSince) levelWatch.micSilentSince = now;
+    else if (now - levelWatch.micSilentSince > 20000) {
+      tips.show(
+        "mic-silent",
+        "Микрофон включён, но 20 секунд ничего не слышит. Проверьте, что выбран нужный микрофон и он не выключен кнопкой на гарнитуре.",
+        { action: { label: "Настройки звука", run: () => openSettingsSection("audio") } },
+      );
+    }
+  } else {
+    levelWatch.micSilentSince = 0;
+  }
+  // Перегруз: громкость у потолка несколько тиков подряд — голос будет хрипеть.
+  if (s.mic && mic > 0.42) levelWatch.clipTicks += 1;
+  else levelWatch.clipTicks = Math.max(0, levelWatch.clipTicks - 0.25);
+  if (levelWatch.clipTicks >= 6) {
+    levelWatch.clipTicks = 0;
+    tips.show(
+      "mic-clip",
+      "Микрофон перегружен — голос может хрипеть. Отодвиньтесь от микрофона или убавьте его громкость в Windows.",
+      { urgent: true },
+    );
+  }
+}
+
+/** Сколько мегабайт в минуту даёт видео при текущем качестве (оценка для 1080p). */
+function estimateMbPerMinute() {
+  const s = state.settings || {};
+  const factor = { low: 0.05, balanced: 0.1, high: 0.18 }[s.quality] ?? 0.1;
+  const fps = Number(s.fps) || 30;
+  return (factor * 1920 * 1080 * fps * 60) / 8 / 1e6;
+}
+
+/** Перед стартом: хватит ли места на диске. Не мешает записи, только советует. */
+async function checkDiskSpace() {
+  if (!tips.canShow("disk-low")) return;
+  try {
+    const free = await window.api.diskFree?.();
+    if (!free?.ok) return;
+    const perMinute = state.mode === "audio" ? 2.5 : estimateMbPerMinute();
+    const minutes = Math.floor(free.bytes / 1e6 / perMinute);
+    if (minutes < 20) {
+      tips.show(
+        "disk-low",
+        "На диске свободно {0} — этого хватит примерно на {1} мин записи. Освободите место или выберите другую папку.",
+        {
+          args: [formatSize(free.bytes), Math.max(0, minutes)],
+          urgent: true,
+          action: { label: "Выбрать папку", run: () => openSettingsSection("output") },
+        },
+      );
+    }
+  } catch {
+    /* оценка места — только совет */
+  }
+}
+
+/** Сколько раз в этом запуске запись и снимок запускали мышью, а не клавишей. */
+const mouseUse = { record: 0, shot: 0 };
+
+/** Снимки мышью: со второго раза подсказываем клавишу. */
+function noteMouseShot() {
+  mouseUse.shot += 1;
+  if (mouseUse.shot < 2) return;
+  const keys = state.settings?.hotkeys || {};
+  const key = state.mode === "region" ? keys.regionShot : keys.screenshot;
+  if (!key) return;
+  setTimeout(
+    () =>
+      tips.show(
+        "hotkey-shot",
+        "Снимок можно делать клавишей {0} из любой программы — окно Screen Revesane открывать не нужно.",
+        { args: [key] },
+      ),
+    2500,
+  );
+}
+
+/** Советы, которые уместны сразу после того, как запись сохранилась. */
+function tipsAfterRecording(result, info) {
+  if (!result?.ok) return;
+  if (tips.show(
+    "first-save",
+    "Запись готова! Она уже в «Последних записях»: нажмите на неё, чтобы посмотреть, подрезать или ускорить.",
+    { once: true, urgent: true },
+  )) return;
+  if (info?.selfVisible) {
+    if (tips.show(
+      "self-visible",
+      "В эту запись попало окно Screen Revesane. Его можно убрать из кадра одной кнопкой — «Своё окно» под карточками.",
+      { action: { label: "Скрыть окно из записи", run: () => $("strip-self")?.click() } },
+    )) return;
+  }
+  const keys = state.settings?.hotkeys || {};
+  if (mouseUse.record >= 2 && keys.toggle) {
+    tips.show(
+      "hotkey-record",
+      "Запись можно запускать и останавливать клавишей {0} — даже когда окно свёрнуто или открыта игра.",
+      { args: [keys.toggle] },
+    );
+  }
+}
 /** Стоп, пришедший пока запись ещё стартовала (гонка авто-остановки с slow-start). */
 let pendingStop = false;
 
@@ -165,6 +437,7 @@ function startMeters() {
     const mic = settings.mic ? recorder.level("mic") : 0;
     paintMeter("system-meter", "system-level-fill", system);
     paintMeter("mic-level", "mic-level-fill", mic);
+    watchLevels(mic, system);
     const db = $("mic-db");
     if (db) db.textContent = mic > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(mic))) : "—";
   }, 120);
@@ -237,6 +510,7 @@ function startPreviewLoop() {
     paintMeter("system-meter", "system-level-fill", system);
     paintMiniMeter("mini-mic-fill", mic);
     paintMiniMeter("mini-system-fill", system);
+    watchLevels(mic, system);
     const db = $("mic-db");
     if (db) db.textContent = mic > 0.0005 ? I18N.t("{0} дБ", Math.round(20 * Math.log10(mic))) : "—";
   }, 120);
@@ -1208,6 +1482,7 @@ async function beginRecording() {
     uiLog("info", "окно: системный звук пойдёт отдельной сессией захвата экрана", "audio");
   }
 
+  void checkDiskSpace();
   state.busy = true;
   pendingStop = false;
   // Тестовые потоки держат те же устройства, что нужны записи: отпускаем их.
@@ -1243,7 +1518,13 @@ async function beginRecording() {
     }
     state.display = started.display;
     // Что main реально взял из настроек — нужно самопроверке авто-стопа.
-    state.lastStart = { autostopMin: started.autostopMin ?? null, at: Date.now() };
+    state.lastStart = {
+      autostopMin: started.autostopMin ?? null,
+      at: Date.now(),
+      // Окно приложения в кадре: защита снята и окно не сворачивается.
+      selfVisible:
+        !isAudio && state.settings.hideSelf === false && !state.settings.minimizeOnRecord && target.kind === "screen",
+    };
 
     const info = isAudio
       ? await recorder.startAudio({
@@ -1299,6 +1580,13 @@ async function beginRecording() {
       const miniTimer = $("mini-timer");
       if (miniTimer) miniTimer.textContent = formatClock(elapsedMs);
       window.api.panelState({ elapsedMs, paused: recorder.paused });
+      if (elapsedMs > 40000 && String(state.settings.videoContainer).toLowerCase() === "gif") {
+        tips.show(
+          "gif-long",
+          "GIF получается огромным уже после минуты записи. Для длинных роликов лучше MP4 — он в десятки раз меньше.",
+          { action: { label: "Сменить формат", run: () => openSettingsSection("output") } },
+        );
+      }
     }, 250);
     startMeters();
 
@@ -1380,6 +1668,9 @@ async function endRecording() {
     toast(I18N.t("Сохранено: {0} · {1} · {2}{3}{4}", name, formatSize(result.size), formatClock(recordedMs), extra, codeHint), "ok");
     result.recordedMs = recordedMs;
     renderLibrary();
+    // Совет показываем после тоста о сохранении, когда окно уже вернулось.
+    const startedInfo = state.lastStart;
+    setTimeout(() => tipsAfterRecording(result, startedInfo), 1800);
     void refreshSources();
     $("cap-hint").textContent = I18N.t("Последняя запись: {0}", name);
     return result;
@@ -3001,6 +3292,8 @@ const SWITCHES = {
   "sw-cursor": "cursorHighlight",
   "sw-watermark": "watermarkOn",
   "sw-wm-shadow": "watermarkShadow",
+  "sw-smartTips": "smartTips",
+  "sw-checkUpdates": "checkUpdates",
 };
 
 function buildCodecSelect(select, allowed, labels, current) {
@@ -3314,7 +3607,14 @@ function bindEvents() {
     });
   });
   $("btn-pick-region").addEventListener("click", chooseRegion);
-  $("btn-primary").addEventListener("click", () => void handlePrimary());
+  $("btn-primary").addEventListener("click", () => {
+    // Счётчик для подсказки про горячие клавиши: запускают мышью — подскажем клавишу.
+    if (!state.recording && !state.busy) {
+      if (state.action === "shot") noteMouseShot();
+      else mouseUse.record += 1;
+    }
+    void handlePrimary();
+  });
   $("btn-pause").addEventListener("click", () => togglePause());
 
   // Выпадающий список режимов: «Запись экрана», «Скриншот области» и т.д.
@@ -3613,6 +3913,27 @@ function bindEvents() {
   $("sel-panelStyle").addEventListener("change", (e) => void saveSetting({ panelStyle: e.target.value }));
   // Окна перерисовывает событие lang:changed от main: оно приходит всем окнам сразу.
   $("sel-language")?.addEventListener("change", (e) => void saveSetting({ language: e.target.value }));
+  $("btn-tour")?.addEventListener("click", () => tour.start());
+  $("btn-check-update")?.addEventListener("click", () => void checkUpdateManually());
+  $("ru-main")?.addEventListener("click", () => void runUpdateAction());
+  $("ru-notes")?.addEventListener("click", () => void window.api.openUpdatePage());
+  $("ru-skip")?.addEventListener("click", async () => {
+    const version = updateUi.info?.version;
+    if (!version) return;
+    await saveSetting({ skipVersion: version });
+    updateUi.phase = "idle";
+    renderUpdate();
+    toast(I18N.t("Версия {0} пропущена. Проверить снова можно в «О программе»", version), "ok");
+  });
+  window.api.onUpdateAvailable((info) => showUpdate(info));
+  window.api.onUpdateProgress((progress) => {
+    updateUi.percent = Number(progress?.percent) || 0;
+    if (updateUi.phase === "downloading") renderUpdate();
+  });
+  $("btn-tips-reset")?.addEventListener("click", async () => {
+    await saveSetting({ tipsDismissed: [], smartTips: true });
+    toast(I18N.t("Скрытые советы снова будут показываться"), "ok");
+  });
 
   document.querySelectorAll(".snav").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -4624,6 +4945,9 @@ async function relocalize(lang) {
     await refreshSources();
   }
   renderMini();
+  tips.hide();
+  tour.relocalize();
+  renderUpdate();
 }
 
 async function boot() {
@@ -4646,10 +4970,25 @@ async function boot() {
   setRailState(I18N.t("готов"), "ok");
   // История на главной должна быть заполнена сразу, а не после захода в библиотеку.
   void renderLibrary();
+  // Обновление могли найти раньше, чем окно подписалось на событие.
+  void window.api.updateState?.().then((st) => {
+    if (!st?.info?.available || st.info.version === state.settings.skipVersion) return;
+    showUpdate(st.info);
+    if (st.ready) {
+      updateUi.phase = "ready";
+      renderUpdate();
+    }
+  });
   // Если микрофон или система включены, полосы должны показывать сигнал сразу,
   // а не только после старта записи.
   syncPreviewMeters();
   renderMini();
+  // Первый запуск: тур по программе. В автотестах и в компактном окне — нет.
+  if (!state.settings.tourDone && !state.info?.automation && !compactMode) {
+    setTimeout(() => {
+      if (!state.recording && !compactMode) tour.start();
+    }, 900);
+  }
 }
 
 /** Показывает в плитке, есть ли камера. */

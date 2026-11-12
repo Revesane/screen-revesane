@@ -12,6 +12,7 @@ const { pathToFileURL } = require("node:url");
 const log = require("./log");
 const watermark = require("./watermark");
 const ffmpegFetch = require("./ffmpeg-fetch");
+const updater = require("./updater");
 const I18N = require("../i18n/i18n.js");
 
 // Кадры и таймеры не должны замирать, когда окно свёрнуто или спрятано:
@@ -123,6 +124,14 @@ const DEFAULT_SETTINGS = {
   outputDirShots: "",
   // авто = язык системы
   language: "auto",
+  // Тур по программе показывается при первом запуске.
+  tourDone: false,
+  smartTips: true,
+  // Подсказки, которые человек попросил больше не показывать.
+  tipsDismissed: [],
+  // Обновления: проверять при запуске и раз в 6 часов; пропущенная версия.
+  checkUpdates: true,
+  skipVersion: "",
 };
 
 let mainWindow = null;
@@ -273,6 +282,58 @@ const IMAGE_ARGS = {
   tiff: { ext: ".tiff", args: ["-c:v", "tiff"] },
   gif: { ext: ".gif", args: ["-c:v", "gif"] },
 };
+
+// ─────────────────────────────────────────────────────────── обновления
+
+const UPDATE_DIR = path.join(app.getPath("temp"), "screen-revesane-update");
+const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const update = { info: null, downloading: false, file: null, checking: null };
+
+/** Установка из программы: только в собранном приложении и только Windows/macOS. */
+function canInstallUpdate() {
+  return app.isPackaged && (process.platform === "win32" || process.platform === "darwin");
+}
+
+/**
+ * Проверить новую версию. manual — пользователь нажал кнопку: тогда
+ * пропущенная версия всё равно показывается, а ответ «новых нет» тоже нужен.
+ */
+async function checkForUpdates(manual = false) {
+  if (update.checking) return update.checking;
+  update.checking = (async () => {
+    const result = await updater.checkLatest({
+      fetch: (url, init) => net.fetch(url, init),
+      current: app.getVersion(),
+    });
+    if (!result.ok) {
+      log.warn("update", `проверка обновлений не удалась: ${result.error}`);
+      return { ...result, canInstall: false };
+    }
+    const info = { ...result, canInstall: canInstallUpdate() && Boolean(result.asset) };
+    if (result.available) {
+      log.info("update", `доступна версия ${result.version} (сейчас ${result.current})`);
+      update.info = info;
+      const skipped = readSettings().skipVersion === result.version;
+      if (!skipped || manual) mainWindow?.webContents.send("update:available", info);
+    }
+    return info;
+  })().finally(() => {
+    update.checking = null;
+  });
+  return update.checking;
+}
+
+function scheduleUpdateChecks() {
+  if (SELFTEST || SELFTEST_MODES || UI_SHOTS) return;
+  void updater.cleanDownloads(UPDATE_DIR);
+  const run = () => {
+    if (readSettings().checkUpdates === false) return;
+    void checkForUpdates(false).catch((err) => log.warn("update", `проверка: ${err.message}`));
+  };
+  // Не в первые секунды: сначала поднимается интерфейс и ffmpeg.
+  setTimeout(run, 8000).unref?.();
+  setInterval(run, UPDATE_INTERVAL_MS).unref?.();
+}
 
 // ─────────────────────────────────────────────────────────── окна
 
@@ -2121,6 +2182,68 @@ function registerIpc() {
     return { ...settings, lang: resolveLang(settings.language) };
   });
   ipcMain.handle("hotkeys:check", (_e, payload) => checkHotkey(payload ?? {}));
+  ipcMain.handle("update:check", () => checkForUpdates(true));
+  ipcMain.handle("update:state", () => ({
+    info: update.info,
+    downloading: update.downloading,
+    ready: Boolean(update.file),
+  }));
+  ipcMain.handle("update:download", async () => {
+    const info = update.info;
+    if (!info?.available || !info.asset) return { ok: false, error: "no update" };
+    if (!canInstallUpdate()) return { ok: false, error: "not packaged" };
+    if (update.downloading) return { ok: false, error: "busy" };
+    update.downloading = true;
+    try {
+      const result = await updater.downloadAsset({
+        fetch: (url, init) => net.fetch(url, init),
+        asset: info.asset,
+        dir: UPDATE_DIR,
+        onProgress: (progress) => mainWindow?.webContents.send("update:progress", progress),
+      });
+      if (result.ok) {
+        update.file = result.path;
+        log.info("update", `скачан ${path.basename(result.path)}${result.verified ? " (SHA-256 сверен)" : ""}`);
+      } else {
+        log.error("update", `скачать обновление не удалось: ${result.error}`);
+      }
+      return result;
+    } finally {
+      update.downloading = false;
+    }
+  });
+  ipcMain.handle("update:install", async () => {
+    if (!update.file) return { ok: false, error: "not downloaded" };
+    if (capture.active) return { ok: false, error: "recording" };
+    if (process.platform === "darwin") {
+      // macOS: открываем образ диска — программу перетаскивают в «Программы».
+      const error = await shell.openPath(update.file);
+      return error ? { ok: false, error } : { ok: true, mode: "dmg" };
+    }
+    try {
+      const child = spawn(update.file, [], { detached: true, stdio: "ignore" });
+      child.unref();
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+    log.info("update", "установщик запущен, программа закрывается");
+    setTimeout(() => app.quit(), 400);
+    return { ok: true, mode: "installer" };
+  });
+  ipcMain.handle("update:openPage", () => {
+    const page = update.info?.page;
+    void shell.openExternal(updater.isTrustedUrl(page) ? page : updater.RELEASES_PAGE);
+    return true;
+  });
+  // Свободное место в папке записей — для подсказки «мало места на диске».
+  ipcMain.handle("disk:free", async () => {
+    try {
+      const stat = await fsp.statfs(outputDir());
+      return { ok: true, bytes: Number(stat.bavail) * Number(stat.bsize) };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
   ipcMain.handle("settings:set", async (_e, patch) => {
     const next = await writeSettings(patch);
     let hotkeyErrors = [];
@@ -2266,6 +2389,8 @@ function registerIpc() {
         audio: Object.fromEntries(Object.entries(AUDIO_CODECS).map(([key, value]) => [key, I18N.t(value.label)])),
       },
       selftest: SELFTEST,
+      // Автопрогоны (самопроверка, снимки интерфейса): тур не запускается сам.
+      automation: SELFTEST || SELFTEST_MODES || UI_SHOTS,
     };
   });
 
@@ -2695,6 +2820,7 @@ app.whenReady().then(async () => {
   createMainWindow();
   if (SELFTEST_MODES) createTestTarget();
   registerHotkeys();
+  scheduleUpdateChecks();
   // Недописанные записи от прошлых падений чиним после того, как известен ffmpeg.
   void recoverPartFiles().catch((err) => log.error("capture", `recoverPartFiles: ${err.message}`));
 

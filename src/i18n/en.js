@@ -171,8 +171,8 @@
     "Запись стартует сама — через выбранное время или в конкретный час — и останавливается по длительности. Работает по текущим режиму и параметрам захвата.":
       "Recording starts on its own — after the chosen delay or at a specific time — and stops after the set duration. It uses the current mode and capture settings.",
     "Запись экрана": "Screen recording",
-    "Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает выбранный контейнер и формат. Ничего не уходит в сеть — все файлы остаются на этом компьютере.":
-      "Records the screen, a window, a region and audio: Chromium MediaRecorder captures frames, ffmpeg builds the chosen container and format. Nothing is sent over the network — all files stay on this computer.",
+    "Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает выбранный контейнер и формат. Записи никуда не отправляются — все файлы остаются на этом компьютере. В интернет программа ходит только за ffmpeg и за проверкой обновлений на GitHub.":
+      "Records the screen, a window, a region and audio: Chromium MediaRecorder captures frames, ffmpeg builds the chosen container and format. Recordings are never uploaded — all files stay on this computer. The app only goes online to fetch ffmpeg and to check for updates on GitHub.",
     "Запустить по расписанию": "Start on schedule",
     "Звук": "Audio",
     "Звук Windows": "Windows audio",
@@ -617,5 +617,95 @@
     "— предпросмотр,": "— preview,",
     "— снимок,": "— screenshot,",
     "— файл и перекод,": "— file and conversion,",
+
+    // Тур по программе
+    "Добро пожаловать!": "Welcome!",
+    "За минуту покажем, как здесь всё устроено. Тур можно пропустить и повторить позже в «Помощи».":
+      "In one minute we'll show you how everything works. You can skip the tour and replay it later from “Help”.",
+    "Что записывать": "What to record",
+    "Экран, окно, выделенная область, только звук или скриншот — режим выбирается здесь.":
+      "Screen, window, a selected region, audio only or a screenshot — pick the mode here.",
+    "Какой монитор или окно записывать. В режиме области рамка рисуется мышью прямо на экране.":
+      "Which monitor or window to record. In region mode you draw the frame with the mouse right on the screen.",
+    "Всё, что слышно в колонках: игра, музыка, созвон. Полоска показывает, идёт ли звук.":
+      "Everything you hear in your speakers: games, music, calls. The bar shows whether sound is coming through.",
+    "Ваш голос. Кнопка «Тест» покажет, слышит ли программа микрофон.": "Your voice. The “Test” button shows whether the app hears the microphone.",
+    "Картинка с камеры в углу видео. «Фото» — снимок с камеры с отсчётом.": "The camera picture in the corner of the video. “Photo” takes a camera shot after a countdown.",
+    "Большая кнопка — старт и стоп. Клавиша {0} работает из любой программы, {1} — пауза.":
+      "The big button starts and stops. The {0} key works from any program, {1} pauses.",
+    "Быстрые настройки": "Quick settings",
+    "Авто-остановка, запись по расписанию, скрытие своего окна и формат файла — в один клик.":
+      "Auto-stop, scheduled recording, hiding the app window and the file format — one click each.",
+    "Готовые записи": "Your recordings",
+    "Здесь появляются записи и снимки: открыть, подрезать, склеить или разметить.": "Recordings and screenshots appear here: open, trim, merge or annotate them.",
+    "Формат и качество, звук, водяной знак, горячие клавиши и язык интерфейса.": "Format and quality, audio, watermark, hotkeys and interface language.",
+    "Готово!": "All set!",
+    "Тур всегда можно повторить в «Помощи». Удачных записей!": "You can always replay the tour from “Help”. Happy recording!",
+    "Назад": "Back",
+    "Далее": "Next",
+    "Пропустить": "Skip",
+    "Листать автоматически": "Play automatically",
+    "Тур по программе": "App tour",
+    "Минута анимации: что где находится и как сделать первую запись.": "A one-minute animation: where everything is and how to make your first recording.",
+    "Показать тур": "Show tour",
+    "Вернуть скрытые советы": "Restore hidden tips",
+    "Скрытые советы снова будут показываться": "Hidden tips will be shown again",
+
+    // Умные подсказки
+    "Умные подсказки и советы": "Smart hints and tips",
+
+    // Обновления
+    "Проверять обновления автоматически": "Check for updates automatically",
+    "Обновления": "Updates",
+    "не проверялись": "not checked yet",
+    "Проверить обновления": "Check for updates",
+    "Проверяю…": "Checking…",
+    "Что нового": "What's new",
+    "Пропустить эту версию": "Skip this version",
+    "доступна версия {0}": "version {0} is available",
+    "у вас последняя версия": "you have the latest version",
+    "не удалось проверить — нет связи с GitHub": "couldn't check — no connection to GitHub",
+    "Обновление скачано": "Update downloaded",
+    "Версия {0} готова к установке": "Version {0} is ready to install",
+    "Открыть установщик": "Open installer",
+    "Установить и перезапустить": "Install and restart",
+    "Доступна версия {0}": "Version {0} is available",
+    "Скачиваю… {0}%": "Downloading… {0}%",
+    "Скачиваю…": "Downloading…",
+    "Сейчас установлена {0}": "Installed now: {0}",
+    "Обновить": "Update",
+    "Скачать на GitHub": "Download from GitHub",
+    "Сначала остановите запись — установка закроет программу": "Stop the recording first — installing will close the app",
+    "Не удалось запустить установщик: {0}": "Couldn't start the installer: {0}",
+    "Перетащите Screen Revesane в «Программы» и запустите заново": "Drag Screen Revesane into Applications and launch it again",
+    "Обновление не скачалось: {0}": "The update didn't download: {0}",
+    "Не удалось проверить обновления: {0}": "Couldn't check for updates: {0}",
+    "Доступна версия {0} — кнопка «Обновить» слева внизу": "Version {0} is available — the “Update” button is at the bottom left",
+    "У вас последняя версия: {0}": "You have the latest version: {0}",
+    "Версия {0} пропущена. Проверить снова можно в «О программе»": "Version {0} skipped. You can check again in “About”",
+    "Совет": "Tip",
+    "Больше не показывать": "Don't show again",
+    "Настройки звука": "Audio settings",
+    "Выбрать папку": "Choose folder",
+    "Сменить формат": "Change format",
+    "Скрыть окно из записи": "Hide window from recording",
+    "Звук компьютера молчит уже 12 секунд. Если что-то играет, а полоска стоит, проверьте устройство вывода в Windows или источник в карточке «Система».":
+      "Computer audio has been silent for 12 seconds. If something is playing but the bar doesn't move, check the output device in Windows or the source in the “System” card.",
+    "Микрофон включён, но 20 секунд ничего не слышит. Проверьте, что выбран нужный микрофон и он не выключен кнопкой на гарнитуре.":
+      "The microphone is on but hasn't heard anything for 20 seconds. Check that the right microphone is selected and it isn't muted on the headset.",
+    "Микрофон перегружен — голос может хрипеть. Отодвиньтесь от микрофона или убавьте его громкость в Windows.":
+      "The microphone is overloaded — your voice may sound distorted. Move away from the mic or lower its volume in Windows.",
+    "На диске свободно {0} — этого хватит примерно на {1} мин записи. Освободите место или выберите другую папку.":
+      "{0} free on disk — enough for about {1} min of recording. Free up space or choose another folder.",
+    "GIF получается огромным уже после минуты записи. Для длинных роликов лучше MP4 — он в десятки раз меньше.":
+      "GIFs get huge after just a minute of recording. MP4 is better for long clips — it's dozens of times smaller.",
+    "Запись готова! Она уже в «Последних записях»: нажмите на неё, чтобы посмотреть, подрезать или ускорить.":
+      "Your recording is ready! It's in “Recent recordings”: click it to watch, trim or speed it up.",
+    "В эту запись попало окно Screen Revesane. Его можно убрать из кадра одной кнопкой — «Своё окно» под карточками.":
+      "The Screen Revesane window got into this recording. You can keep it out of the frame with one button — “App window” below the cards.",
+    "Запись можно запускать и останавливать клавишей {0} — даже когда окно свёрнуто или открыта игра.":
+      "You can start and stop recording with the {0} key — even when the window is minimized or a game is open.",
+    "Снимок можно делать клавишей {0} из любой программы — окно Screen Revesane открывать не нужно.":
+      "You can take a screenshot with the {0} key from any program — no need to open Screen Revesane.",
   };
 });

@@ -5,6 +5,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; media-src 'self' blob: mediastream: file:; style-src 'self' 'unsafe-inline'" />
     <title>Screen Revesane</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
     <div class="app">
@@ -43,6 +44,17 @@
           <span data-i18n="Помощь">Помощь</span>
         </button>
         <div class="rail-spacer"></div>
+        <div class="rail-update" id="rail-update" hidden>
+          <div class="ru-head">
+            <span class="ru-dot"></span>
+            <b id="ru-title"></b>
+            <button class="ru-x" id="ru-skip" type="button" title="Пропустить эту версию" data-i18n-title="Пропустить эту версию">×</button>
+          </div>
+          <div class="ru-sub" id="ru-sub"></div>
+          <div class="ru-bar" id="ru-bar" hidden><span id="ru-fill"></span></div>
+          <button class="ru-btn" id="ru-main" type="button"></button>
+          <button class="ru-link" id="ru-notes" type="button" data-i18n="Что нового">Что нового</button>
+        </div>
         <div class="rail-state" id="rail-state">
           <span class="lamp" id="lamp"></span>
           <span id="rail-state-text" data-i18n="готов">готов</span>
@@ -286,6 +298,8 @@
                   <button class="switch" id="sw-hideSelf"><span class="switch-name" data-i18n="Не попадать в собственную запись">Не попадать в собственную запись</span><span class="switch-dot"></span></button>
                   <button class="switch" id="sw-minimize"><span class="switch-name" data-i18n="Сворачивать окно при старте">Сворачивать окно при старте</span><span class="switch-dot"></span></button>
                   <button class="switch" id="sw-panel"><span class="switch-name" data-i18n="Показывать плавающую панель">Показывать плавающую панель</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-checkUpdates"><span class="switch-name" data-i18n="Проверять обновления автоматически">Проверять обновления автоматически</span><span class="switch-dot"></span></button>
+                  <button class="switch" id="sw-smartTips"><span class="switch-name" data-i18n="Умные подсказки и советы">Умные подсказки и советы</span><span class="switch-dot"></span></button>
                 </div>
                 <label class="field">
                   <span data-i18n="Стиль панели записи">Стиль панели записи</span>
@@ -695,11 +709,13 @@
           </div>
           <div class="doc">
             <h3>Screen Revesane</h3>
-            <p data-i18n="Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает выбранный контейнер и формат. Ничего не уходит в сеть — все файлы остаются на этом компьютере.">
+            <p data-i18n="Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает выбранный контейнер и формат. Записи никуда не отправляются — все файлы остаются на этом компьютере. В интернет программа ходит только за ffmpeg и за проверкой обновлений на GitHub.">
               Запись экрана, окна, области и звука: Chromium MediaRecorder пишет кадр, ffmpeg собирает
-              выбранный контейнер и формат. Ничего не уходит в сеть — все файлы остаются на этом компьютере.
+              выбранный контейнер и формат. Записи никуда не отправляются — все файлы остаются на этом компьютере.
+              В интернет программа ходит только за ffmpeg и за проверкой обновлений на GitHub.
             </p>
             <div class="info-line"><span data-i18n="Сборка">Сборка</span><b id="about-version">—</b></div>
+            <div class="info-line"><span data-i18n="Обновления">Обновления</span><b id="about-update" data-i18n="не проверялись">не проверялись</b></div>
             <div class="info-line"><span data-i18n="Интерфейс собран">Интерфейс собран</span><b class="mono" id="about-build">—</b></div>
             <div class="info-line"><span data-i18n="Папка приложения">Папка приложения</span><b class="mono" id="about-path">—</b></div>
             <div class="info-line"><span>Electron / Chromium / Node</span><b class="mono" id="about-runtime">—</b></div>
@@ -708,6 +724,7 @@
             <div class="info-line"><span data-i18n="Файл лога">Файл лога</span><b class="mono" id="about-log">—</b></div>
             <div class="info-line"><span data-i18n="Минидампы падений">Минидампы падений</span><b class="mono" id="about-crashdumps">—</b></div>
             <div class="row-actions">
+              <button id="btn-check-update" class="ghost small is-on" data-i18n="Проверить обновления">Проверить обновления</button>
               <button id="btn-open-out" class="ghost small" data-i18n="Открыть папку записей">Открыть папку записей</button>
               <button id="btn-open-log" class="ghost small" data-i18n="Открыть папку логов">Открыть папку логов</button>
               <button id="btn-copy-log" class="ghost small" data-i18n="Скопировать строки лога">Скопировать строки лога</button>
@@ -727,6 +744,16 @@
             <span class="pane-note" data-i18n="Клавиши и пути подставляются из текущих настроек">Клавиши и пути подставляются из текущих настроек</span>
           </div>
           <div class="doc">
+            <h3 data-i18n="Тур по программе">Тур по программе</h3>
+            <div class="tour-launch">
+              <p data-i18n="Минута анимации: что где находится и как сделать первую запись.">Минута анимации: что где находится и как сделать первую запись.</p>
+              <button class="ghost" id="btn-tips-reset" data-i18n="Вернуть скрытые советы">Вернуть скрытые советы</button>
+              <button class="ghost is-on" id="btn-tour">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+                <span data-i18n="Показать тур">Показать тур</span>
+              </button>
+            </div>
+            <div class="doc-sep"></div>
             <h3 data-i18n="Как записать">Как записать</h3>
             <p data-i18n="Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок — и нажмите круглую кнопку. Пока идёт запись, кнопка останавливает её, рядом доступна пауза. Пока приложение записывает, его собственное окно можно исключить из кадра (настройки → «Общий»).">
               Выберите режим в верхней строке главного экрана — экран, окно, область, только звук или снимок —

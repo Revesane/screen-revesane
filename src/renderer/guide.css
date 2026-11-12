@@ -1,0 +1,522 @@
+/* Тур по программе и умные подсказки. Цвета и радиусы — из styles.css. */
+
+/* ───────────────────────────────────────────── тур */
+
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.tour.is-open { opacity: 1; }
+.tour.is-leaving { opacity: 0; }
+
+/* Прожектор: прозрачная дыра, всё вокруг затемнено огромной тенью. */
+.tour-spot {
+  position: fixed;
+  border-radius: var(--r-xl);
+  border: 2px solid var(--accent);
+  box-shadow:
+    0 0 0 200vmax rgba(2, 7, 12, 0.74),
+    0 0 26px rgba(43, 214, 198, 0.45),
+    inset 0 0 18px rgba(43, 214, 198, 0.18);
+  transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.3s ease;
+  animation: tour-glow 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.tour-spot.is-empty { border-color: transparent; animation: none; }
+
+@keyframes tour-glow {
+  0%, 100% { outline: 0 solid rgba(43, 214, 198, 0.35); outline-offset: 2px; }
+  50% { outline: 6px solid rgba(43, 214, 198, 0); outline-offset: 10px; }
+}
+
+/* Курсор-призрак: летит к цели, потом «кликает», тянет рамку или ведёт вдоль. */
+.tour-cursor {
+  position: fixed;
+  width: 26px;
+  height: 26px;
+  margin: -3px 0 0 -5px;
+  z-index: 2;
+  transition: left 0.6s cubic-bezier(0.3, 0.7, 0.2, 1), top 0.6s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.25s ease;
+  pointer-events: none;
+}
+.tour-cursor svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  fill: #fff;
+  stroke: #07101a;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+  transform-origin: 20% 15%;
+}
+.tour-cursor.is-hidden { opacity: 0; }
+
+.tour-ripple {
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+}
+
+.tour[data-demo="click"] .tour-cursor svg { animation: tour-press 2.2s ease-in-out infinite; }
+.tour[data-demo="click"] .tour-ripple { animation: tour-ripple 2.2s ease-out infinite; }
+.tour[data-demo="press"] .tour-cursor svg { animation: tour-press 1.8s ease-in-out infinite; }
+.tour[data-demo="press"] .tour-ripple {
+  border-color: #ff6b6b;
+  animation: tour-ripple 1.8s ease-out infinite;
+}
+
+@keyframes tour-press {
+  0%, 30%, 52%, 100% { transform: scale(1); }
+  40% { transform: scale(0.82); }
+}
+@keyframes tour-ripple {
+  0%, 38% { transform: scale(0.2); opacity: 0; }
+  42% { opacity: 0.95; }
+  75%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Перетаскивание: курсор уходит по диагонали, за ним растёт пунктирная рамка. */
+.tour[data-demo="drag"] .tour-cursor { animation: tour-drag-move 3s ease-in-out infinite; }
+.tour[data-demo="drag"] .tour-cursor svg { animation: tour-drag-press 3s ease-in-out infinite; }
+.tour-drag {
+  position: fixed;
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  background: rgba(43, 214, 198, 0.12);
+  transform-origin: 0 0;
+  transform: scale(0);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.tour[data-demo="drag"] .tour-drag { animation: tour-drag-box 3s ease-in-out infinite; }
+
+@keyframes tour-drag-move {
+  0%, 18% { transform: translate(0, 0); }
+  70%, 88% { transform: translate(var(--dx), var(--dy)); }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+@keyframes tour-drag-press {
+  0%, 12% { transform: scale(1); }
+  18%, 70% { transform: scale(0.86); }
+  76%, 100% { transform: scale(1); }
+}
+@keyframes tour-drag-box {
+  0%, 18% { transform: scale(0); opacity: 1; }
+  70%, 88% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* Проход вдоль ряда кнопок. */
+.tour[data-demo="sweep"] .tour-cursor { animation: tour-sweep 3.6s ease-in-out infinite; }
+@keyframes tour-sweep {
+  0%, 8% { transform: translateX(0); }
+  46%, 54% { transform: translateX(var(--dx)); }
+  92%, 100% { transform: translateX(0); }
+}
+
+/* Карточка с пояснением. */
+.tour-card {
+  position: fixed;
+  z-index: 3;
+  width: 340px;
+  padding: 14px 16px 14px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, #14283b, #0c1925);
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow-pop), 0 0 32px rgba(43, 214, 198, 0.16);
+  color: var(--txt);
+  outline: none;
+  transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tour-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.tour-count {
+  flex: 1;
+  font: 600 11px var(--mono);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.tour-play,
+.tour-x {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tour-play { font-size: 10px; letter-spacing: -1px; }
+.tour-play:hover,
+.tour-x:hover { background: rgba(255, 255, 255, 0.07); color: var(--txt); }
+
+.tour-body.is-in { animation: tour-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes tour-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tour-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 650;
+}
+.tour-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--txt-dim);
+}
+
+/* Приветствие: три «волны» как у логотипа. */
+.tour-hello {
+  position: relative;
+  height: 54px;
+  margin: 2px 0 10px;
+}
+.tour-hello span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: tour-wave 2.4s ease-out infinite;
+}
+.tour-hello span:nth-child(2) { animation-delay: 0.8s; }
+.tour-hello span:nth-child(3) { animation-delay: 1.6s; }
+.tour-hello::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: #ff5252;
+  box-shadow: 0 0 16px rgba(255, 82, 82, 0.7);
+}
+@keyframes tour-wave {
+  from { transform: scale(0.6); opacity: 0.9; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+.tour-progress {
+  height: 3px;
+  margin: 14px 0 12px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.tour-progress-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  animation: tour-progress 7.5s linear forwards;
+}
+.tour.is-paused .tour-progress-fill,
+.tour-card:hover .tour-progress-fill { animation-play-state: paused; }
+.tour.is-paused .tour-progress-fill { opacity: 0.35; }
+@keyframes tour-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.tour-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tour-foot .grow { flex: 1; }
+.tour-next {
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 650 12px var(--font);
+  cursor: pointer;
+  box-shadow: var(--accent-glow);
+}
+.tour-next:hover { filter: brightness(1.08); }
+.tour-prev:disabled { opacity: 0.35; pointer-events: none; }
+
+/* ───────────────────────────────────────────── умные подсказки */
+
+.smart-tip {
+  position: fixed;
+  left: 50%;
+  top: 70px;
+  z-index: 75;
+  width: min(460px, calc(100vw - 32px));
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, #16293a, #0d1b27);
+  border: 1px solid rgba(224, 167, 91, 0.45);
+  box-shadow: var(--shadow-pop), 0 0 26px rgba(224, 167, 91, 0.12);
+  color: var(--txt);
+  font-size: 12.5px;
+  line-height: 1.45;
+  transform: translate(-50%, 0);
+  animation: tip-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.smart-tip.is-leaving {
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+@keyframes tip-in {
+  from { opacity: 0; transform: translate(-50%, -18px) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Лампочка: вспыхивает при появлении и мягко «дышит». */
+.tip-bulb {
+  flex: none;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(224, 167, 91, 0.14);
+  color: var(--warn);
+  animation: tip-bulb 2.6s ease-in-out 0.3s infinite;
+}
+.tip-bulb svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tip-bulb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--warn);
+  animation: tour-wave 1.1s ease-out 1 both;
+}
+@keyframes tip-bulb {
+  0%, 100% { box-shadow: 0 0 0 rgba(224, 167, 91, 0); }
+  50% { box-shadow: 0 0 16px rgba(224, 167, 91, 0.45); }
+}
+
+.tip-main { flex: 1; min-width: 0; }
+.tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.tip-label {
+  flex: 1;
+  font-weight: 650;
+  color: var(--warn);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.tip-close {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tip-close:hover { background: rgba(255, 255, 255, 0.07); color: var(--txt); }
+.tip-text { color: var(--txt-dim); }
+.tip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tip-never {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--muted-low);
+  font: 11px var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tip-never:hover { color: var(--txt-dim); }
+
+/* Полоса до автоскрытия; наведение её останавливает. */
+.tip-timer {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--warn);
+  opacity: 0.5;
+  transform-origin: 0 50%;
+  animation: tip-timer 14s linear forwards;
+}
+.smart-tip:hover .tip-timer { animation-play-state: paused; }
+@keyframes tip-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Помощь: блок с запуском тура. */
+.tour-launch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.tour-launch p { flex: 1; margin: 0; }
+
+body.compact .smart-tip { top: 10px; width: calc(100vw - 20px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour *, .tour, .smart-tip, .smart-tip * { animation: none !important; transition: none !important; }
+  .tour-drag { transform: scale(1); }
+}
+
+/* ───────────────────────────────────────────── обновления */
+
+.rail-update {
+  margin-bottom: 8px;
+  padding: 11px 12px 10px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(43, 214, 198, 0.13), rgba(43, 214, 198, 0.05));
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 0 22px rgba(43, 214, 198, 0.12);
+  animation: tip-in-rail 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes tip-in-rail {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.ru-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ru-head b {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--txt);
+}
+.ru-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: tip-bulb 2s ease-in-out infinite;
+}
+.ru-x {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ru-x:hover { background: rgba(255, 255, 255, 0.08); color: var(--txt); }
+.ru-sub {
+  margin: 3px 0 9px 16px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.ru-bar {
+  height: 4px;
+  margin: -3px 0 9px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ru-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.ru-btn {
+  width: 100%;
+  height: 30px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 650 12px var(--font);
+  cursor: pointer;
+  box-shadow: var(--accent-glow);
+}
+.ru-btn:hover { filter: brightness(1.08); }
+.ru-btn:disabled { opacity: 0.6; cursor: default; filter: none; }
+.rail-update.is-ready .ru-btn { animation: tip-bulb 2s ease-in-out infinite; }
+.ru-link {
+  display: block;
+  margin: 6px auto 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 11px var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ru-link:hover { color: var(--txt-dim); }
+
+/* Точка на «О программе», пока есть непрочитанное обновление. */
+.rail-btn.has-badge::after {
+  content: "";
+  position: absolute;
+  left: 30px;
+  top: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-side), 0 0 8px var(--accent);
+}
+#about-update.is-new { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-update, .rail-update *, .ru-dot { animation: none !important; }
+}
