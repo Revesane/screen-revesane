@@ -1,8 +1,8 @@
 "use strict";
 
 const {
-  app, BrowserWindow, Menu, Tray, clipboard, crashReporter, desktopCapturer, dialog, globalShortcut, ipcMain,
-  nativeImage, net, screen, session, shell,
+  app, BrowserWindow, Menu, Tray, ClipboardItem, clipboard, crashReporter, desktopCapturer, dialog, globalShortcut,
+  ipcMain, nativeImage, net, screen, session, shell,
 } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
@@ -864,6 +864,42 @@ function cropBackdrop(image, bounds, rect) {
 }
 
 /**
+ * Положить картинку в буфер обмена.
+ *
+ * В Electron 45 у clipboard только асинхронный W3C-интерфейс: writeImage,
+ * readImage и availableFormats убраны, write() принимает массив ClipboardItem,
+ * а has() возвращает промис. Прежний write({ image }) молча отклонялся, а
+ * промис has() всегда был «правдив» — поэтому копирование сообщало об успехе,
+ * хотя в буфере ничего не появлялось.
+ */
+async function writeImageToClipboard(image) {
+  if (!image || image.isEmpty()) return { ok: false, reason: "empty-image" };
+  try {
+    if (typeof clipboard.writeImage === "function") {
+      // Electron до 45: синхронный API.
+      clipboard.writeImage(image);
+    } else if (typeof ClipboardItem === "function" && typeof clipboard.write === "function") {
+      const png = image.toPNG();
+      if (!png || !png.length) return { ok: false, reason: "empty-image" };
+      const item = new ClipboardItem({ "image/png": new Blob([png], { type: "image/png" }) });
+      await clipboard.write([item]);
+    } else {
+      return { ok: false, reason: "clipboard-api" };
+    }
+    // has() в Electron 45 асинхронный: без await промис всегда «правдив».
+    const hasImage = typeof clipboard.has === "function"
+      ? await clipboard.has("image/png")
+      : typeof clipboard.availableFormats === "function"
+        ? clipboard.availableFormats().some((format) => /image/i.test(format))
+        : true;
+    if (!hasImage) return { ok: false, reason: "clipboard-empty" };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Снимок рамки из окна выделения видео: окно остаётся открытым, запись по
  * этой рамке можно начать следом. copy — в буфер вместо файла.
  */
@@ -880,8 +916,10 @@ async function snapFromRegion(rect, copy) {
   const size = crop.getSize();
   let result;
   if (copy) {
-    clipboard.write({ image: crop });
-    result = { ok: true, copy: true };
+    const copied = await writeImageToClipboard(crop);
+    result = copied.ok
+      ? { ok: true, copy: true }
+      : { ok: false, copy: true, reason: copied.reason, error: copied.error };
   } else {
     const dataUrl = /^jpe?g$/.test(format)
       ? `data:image/jpeg;base64,${crop.toJPEG(92).toString("base64")}`
@@ -2596,23 +2634,13 @@ function registerIpc() {
   ipcMain.handle("library:speed", (_e, payload) => speedMedia(payload ?? {}));
   ipcMain.handle("library:readImage", (_e, payload) => readImageAsDataUrl(payload?.filePath));
   ipcMain.handle("library:saveAnnotated", (_e, payload) => saveAnnotated(payload ?? {}));
-  ipcMain.handle("clipboard:writeImage", (_e, payload) => {
+  ipcMain.handle("clipboard:writeImage", async (_e, payload) => {
+    const dataUrl = payload?.dataUrl;
+    if (!dataUrl) return { ok: false, reason: "no-image" };
     try {
-      const dataUrl = payload?.dataUrl;
-      if (!dataUrl) return { ok: false, reason: "no-image" };
       const image = nativeImage.createFromDataURL(String(dataUrl));
       if (image.isEmpty()) return { ok: false, reason: "empty-image" };
-      // В этой сборке Electron у clipboard нет writeImage/readImage —
-      // класть картинку можно общим write({ image }), он есть.
-      if (typeof clipboard.writeImage === "function") {
-        clipboard.writeImage(image);
-      } else {
-        clipboard.write({ image });
-      }
-      const formats = typeof clipboard.availableFormats === "function" ? clipboard.availableFormats() : [];
-      const hasImage = typeof clipboard.has === "function" ? clipboard.has("image/png") : formats.some((f) => /image/i.test(f));
-      if (!hasImage) return { ok: false, reason: "clipboard-empty", formats };
-      return { ok: true, formats };
+      return await writeImageToClipboard(image);
     } catch (err) {
       return { ok: false, error: err.message };
     }
@@ -2800,9 +2828,8 @@ function registerIpc() {
     }
     let clipboardHasImage = null;
     try {
-      clipboardHasImage = typeof clipboard.readImage === "function"
-        ? !clipboard.readImage().isEmpty()
-        : null;
+      // has() в Electron 45 возвращает промис; старый readImage убран.
+      clipboardHasImage = typeof clipboard.has === "function" ? await clipboard.has("image/png") : null;
     } catch {
       clipboardHasImage = null;
     }

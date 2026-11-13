@@ -82,7 +82,7 @@ function updateScene() {
   return `
     <div class="scene scene-update" aria-hidden="true">
       <div class="sc-card">
-        <div class="sc-head"><i></i>${t("Доступна версия {0}", "0.2.5")}</div>
+        <div class="sc-head"><i></i>${t("Доступна версия {0}", "0.2.6")}</div>
         <div class="sc-bar"><span></span></div>
         <div class="sc-btn"><span class="u1">${t("Обновить")}</span><span class="u2">${t("Скачиваю…")}</span><span class="u3">${t("Установить и перезапустить")}</span></div>
       </div>

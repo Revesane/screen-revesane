@@ -2941,24 +2941,15 @@ async function copyCanvasToClipboard(canvas) {
     errors.push(`clipboard: ${err.message || err}`);
   }
 
-  // Фолбэк: копирование картинки через выделение и execCommand("copy").
+  // Запасной путь — main-процесс. execCommand("copy") в Electron 45
+  // возвращает true, но кладёт в буфер только text/html без картинки,
+  // поэтому успех проверяем по реальному содержимому буфера в main.
   try {
-    const img = document.createElement("img");
-    img.src = canvas.toDataURL("image/png");
-    img.style.cssText = "position:fixed;left:-10000px;top:0";
-    document.body.appendChild(img);
-    const range = document.createRange();
-    range.selectNode(img);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    const ok = document.execCommand("copy");
-    selection.removeAllRanges();
-    img.remove();
-    if (ok) return { ok: true, via: "execCommand" };
-    errors.push(I18N.t("execCommand copy отклонён"));
+    const viaMain = await window.api.copyImage(canvas.toDataURL("image/png"));
+    if (viaMain?.ok) return { ok: true, via: "main" };
+    errors.push(viaMain?.error || viaMain?.reason || I18N.t("нет доступа к буферу"));
   } catch (err) {
-    errors.push(`execCommand: ${err.message || err}`);
+    errors.push(`main: ${err.message || err}`);
   }
 
   return { ok: false, error: errors.join("; ") };
