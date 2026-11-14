@@ -85,6 +85,16 @@ function fail(code, extra = {}) {
 const DEFAULT_SETTINGS = {
   fps: 30,
   quality: "balanced",
+  // Качество видео и снимков. resolution — "screen" (родное разрешение экрана),
+  // "screen169" (строго 16:9), "source" (как отдаёт источник) или высота кадра
+  // (2160/1440/1080/720/480). bitrateKbps — 0 значит «авто».
+  resolution: "screen",
+  bitrateKbps: 0,
+  // Финальный энкодер H.264: auto (NVENC/QSV, иначе x264), x264, nvenc, qsv
+  // или copy (не перекодировать). Профиль всегда High.
+  videoEncoder: "auto",
+  // JPEG-качество снимков, 50–100. PNG всегда пишется без потерь.
+  shotQuality: 100,
   mic: false,
   systemAudio: true,
   webcam: false,
@@ -183,6 +193,10 @@ const capture = {
   partPath: null,      // куда пишем на самом деле (<имя>.part.<ext>)
   ext: ".webm",
   stream: null,
+  // Отдельная аудио-дорожка движка WebCodecs (Opus/WebM рядом с видео IVF).
+  audioPath: null,
+  audioPartPath: null,
+  audioStream: null,
   startedAt: 0,
   audio: false,
   selfVisible: false,
@@ -236,13 +250,13 @@ function shotsDir() {
  * mp4/webm, остальные контейнеры получаются перекодом через ffmpeg.
  */
 const CONTAINER_ARGS = {
-  mp4: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"],
-  mkv: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k"],
-  mov: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"],
+  mp4: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"],
+  mkv: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k"],
+  mov: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"],
   webm: ["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1", "-c:a", "libopus", "-b:a", "128k"],
   wmv: ["-c:v", "wmv2", "-b:v", "8M", "-c:a", "wmav2", "-b:a", "192k", "-f", "asf"],
-  f4v: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "mp4"],
-  ts: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "mpegts"],
+  f4v: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "mp4"],
+  ts: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "mpegts"],
   gif: null, // GIF собирается отдельным фильтром
 };
 
@@ -260,14 +274,37 @@ const CONTAINER_EXT = {
 
 /** Кодеки, доступные в этом ffmpeg (проверено: libx264, libx265, prores_ks, mpeg4, libvpx-vp9). */
 const VIDEO_CODECS = {
-  h264: { label: "H.264", args: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"] },
-  hevc: { label: "HEVC (H.265)", args: ["-c:v", "libx265", "-preset", "veryfast", "-crf", "24", "-pix_fmt", "yuv420p", "-tag:v", "hvc1"] },
+  h264: { label: "H.264", args: ["-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"] },
+  hevc: { label: "HEVC (H.265)", args: ["-c:v", "libx265", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-tag:v", "hvc1"] },
   mpeg4: { label: "MPEG-4 (XVID-совместимый)", args: ["-c:v", "mpeg4", "-q:v", "3", "-pix_fmt", "yuv420p"] },
   prores: { label: "ProRes", args: ["-c:v", "prores_ks", "-profile:v", "3", "-pix_fmt", "yuv422p10le"] },
   vp9: { label: "VP9", args: ["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1"] },
   vp8: { label: "VP8", args: ["-c:v", "libvpx", "-b:v", "6M", "-crf", "10"] },
   wmv2: { label: "WMV2", args: ["-c:v", "wmv2", "-b:v", "8M"] },
 };
+
+/**
+ * H.264-энкодеры финального файла. Chromium пишет через OpenH264 с профилем
+ * Baseline, поэтому при выбранном энкодере запись перекодируется в High.
+ * NVENC/QSV заметно быстрее, x264 — универсальный запасной вариант.
+ */
+const H264_ENCODERS = {
+  x264: {
+    label: "x264 (CPU)",
+    args: ["-c:v", "libx264", "-profile:v", "high", "-preset", "slower", "-crf", "16", "-pix_fmt", "yuv420p"],
+  },
+  nvenc: {
+    label: "NVIDIA NVENC",
+    args: ["-c:v", "h264_nvenc", "-profile:v", "high", "-preset", "p7", "-rc", "vbr", "-cq", "16", "-b:v", "0", "-pix_fmt", "yuv420p"],
+  },
+  qsv: {
+    label: "Intel Quick Sync",
+    args: ["-c:v", "h264_qsv", "-profile:v", "high", "-global_quality", "16", "-pix_fmt", "nv12"],
+  },
+};
+
+/** Результаты проверки аппаратных энкодеров: FFmpeg может их знать, но GPU нет. */
+const encoderProbe = new Map();
 
 const AUDIO_CODECS = {
   aac: { label: "AAC", args: (br) => ["-c:a", "aac", "-b:a", br] },
@@ -584,7 +621,7 @@ async function captureUiShots() {
     mainWindow.webContents.send("selftest:view", "settings");
     await wait(500);
     shots.settings = await shoot("ui-settings");
-    for (const section of ["general", "output", "audio", "mark", "schedule", "keys"]) {
+    for (const section of ["general", "output", "advanced", "audio", "mark", "schedule", "keys"]) {
       await mainWindow.webContents.executeJavaScript(
         `document.querySelector('.snav[data-section="${section}"]')?.click(); true`,
       );
@@ -863,6 +900,12 @@ function cropBackdrop(image, bounds, rect) {
   });
 }
 
+/** Качество JPEG для снимков: 100 по умолчанию, но не ниже 50. */
+function shotJpegQuality(settings = readSettings()) {
+  const value = Number(settings.shotQuality);
+  return Number.isFinite(value) ? Math.max(50, Math.min(100, Math.round(value))) : 100;
+}
+
 /**
  * Положить картинку в буфер обмена.
  *
@@ -911,7 +954,8 @@ async function snapFromRegion(rect, copy) {
   if (!image || !rect || !(rect.width > 1) || !(rect.height > 1)) {
     return { ok: false, reason: "no-backdrop" };
   }
-  const format = String(readSettings().screenshotFormat || "png").toLowerCase();
+  const settings = readSettings();
+  const format = String(settings.screenshotFormat || "png").toLowerCase();
   const crop = cropBackdrop(image, source.bounds, rect);
   const size = crop.getSize();
   let result;
@@ -922,7 +966,7 @@ async function snapFromRegion(rect, copy) {
       : { ok: false, copy: true, reason: copied.reason, error: copied.error };
   } else {
     const dataUrl = /^jpe?g$/.test(format)
-      ? `data:image/jpeg;base64,${crop.toJPEG(92).toString("base64")}`
+      ? `data:image/jpeg;base64,${crop.toJPEG(shotJpegQuality(settings)).toString("base64")}`
       : crop.toDataURL();
     result = await saveScreenshot({ dataUrl, format });
   }
@@ -1190,7 +1234,7 @@ async function pickRegion(intent = "video", opts = {}) {
           const crop = cropBackdrop(backdropImage, bounds, rect);
           const jpeg = /^jpe?g$/i.test(String(opts.stillFormat || ""));
           stillUrl = jpeg
-            ? `data:image/jpeg;base64,${crop.toJPEG(92).toString("base64")}`
+            ? `data:image/jpeg;base64,${crop.toJPEG(shotJpegQuality()).toString("base64")}`
             : crop.toDataURL();
         } catch (err) {
           log.warn("region", `снимок из подложки не вырезан: ${err.message}`);
@@ -1391,14 +1435,63 @@ function probeFfprobe() {
   return probeBinary(FFPROBE_CANDIDATES, "ffprobe version");
 }
 
-function convertToMp4(webmPath) {
+/** Проверяет, что энкодер реально работает: FFmpeg может его знать, а GPU — нет. */
+function encoderWorks(key) {
+  if (!H264_ENCODERS[key]) return Promise.resolve(false);
+  if (!encoderProbe.has(key)) {
+    const test = runFfmpeg([
+      "-f", "lavfi",
+      "-i", "color=c=black:s=256x144:d=0.2",
+      ...H264_ENCODERS[key].args,
+      "-an", "-f", "null", "-",
+    ]).then((result) => result.ok);
+    encoderProbe.set(key, test);
+  }
+  return encoderProbe.get(key);
+}
+
+/**
+ * Выбирает H.264-энкодер для финального файла.
+ * auto — сначала NVENC, потом QSV, иначе x264. Если выбранный аппаратный
+ * энкодер не запускается, молча откатываемся на x264, чтобы запись не осталась
+ * с профилем Baseline. copy — совсем без перекода (для тех, кому важна скорость).
+ */
+async function chooseH264Encoder(settings) {
+  const wanted = String(settings.videoEncoder || "auto").toLowerCase();
+  const pick = (key, note = null) => ({
+    key,
+    label: H264_ENCODERS[key]?.label || key,
+    args: H264_ENCODERS[key]?.args || [],
+    note,
+  });
+  if (wanted === "copy") return { key: "copy", label: "copy", args: [], note: null };
+  if (wanted === "x264") return pick("x264");
+  if (wanted === "nvenc" || wanted === "qsv") {
+    if (await encoderWorks(wanted)) return pick(wanted);
+    return pick("x264", I18N.t("{0} недоступен — использую x264", H264_ENCODERS[wanted].label));
+  }
+  for (const key of ["nvenc", "qsv"]) {
+    if (await encoderWorks(key)) return pick(key);
+  }
+  return pick("x264");
+}
+
+async function convertToMp4(webmPath) {
+  const settings = readSettings();
+  const chosen = await chooseH264Encoder(settings);
+  // Из WebM нельзя скопировать H.264: даже при «без перекода» нужен x264.
+  const videoArgs = chosen.key === "copy" ? H264_ENCODERS.x264.args : chosen.args;
+  const capKbps = Math.round(Number(settings.bitrateKbps) || 0);
+  const cap = capKbps > 0
+    ? ["-maxrate", `${capKbps}k`, "-bufsize", `${capKbps * 2}k`]
+    : [];
   return new Promise((resolve, reject) => {
     const mp4Path = webmPath.replace(/\.webm$/i, ".mp4");
     const args = [
       "-hide_banner", "-loglevel", "error", "-y",
       "-i", webmPath,
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-      "-pix_fmt", "yuv420p",
+      ...videoArgs,
+      ...cap,
       "-c:a", "aac", "-b:a", "160k",
       "-movflags", "+faststart",
       mp4Path,
@@ -1420,6 +1513,145 @@ function convertToMp4(webmPath) {
 /** Общие параметры звука из настроек: битрейт, частота, каналы. */
 function audioTailArgs(settings) {
   const out = ["-c:a", "aac", "-b:a", `${Number(settings.audioQuality) || 192}k`];
+  if (Number(settings.sampleRate)) out.push("-ar", String(settings.sampleRate));
+  if (Number(settings.channels)) out.push("-ac", String(settings.channels));
+  return out;
+}
+
+/**
+ * Финализация записи движка WebCodecs: VP9/IVF + звук Opus/WebM → выбранный
+ * формат. Промежуточный VP9 пишется с низким QP (почти без потерь), поэтому
+ * перекод в H.264/HEVC не теряет резкость текста. WebM без водяного знака
+ * собирается copy-ремуксом — ноль потерь и мгновенно.
+ */
+async function finalizeIvfCapture({ videoPath, audioPath, settings, target, wmPlan }) {
+  if (!ffmpegPath) {
+    return {
+      ok: false,
+      path: videoPath,
+      converted: false,
+      note: I18N.t("ffmpeg нет — оставлен {0}", path.extname(videoPath)),
+    };
+  }
+  const wm = target === "gif" ? null : wmPlan;
+  if (target !== "gif" && !CONTAINER_ARGS[target]) {
+    return { ok: true, path: videoPath, converted: false, note: I18N.t("контейнер {0} не поддержан", target) };
+  }
+  const ext = CONTAINER_EXT[target] ?? `.${target}`;
+  let outPath = videoPath.replace(/\.[^.]+$/, "") + ext;
+  const replaceInPlace = outPath.toLowerCase() === videoPath.toLowerCase();
+  if (replaceInPlace) outPath = videoPath.replace(/\.[^.]+$/, "") + `_conv${ext}`;
+
+  const hasAudio = Boolean(audioPath);
+  const bitrate = `${Number(settings.audioQuality) || 192}k`;
+
+  // Входы: видео первым (индексы фильтров водяного знака считаются от него),
+  // картинка знака — второй, звук — последним.
+  const args = ["-hide_banner", "-loglevel", "error", "-y", "-f", "ivf", "-i", videoPath];
+  const audioIndex = 1 + (wm?.mode === "image" ? 1 : 0);
+  if (wm?.mode === "image") args.push(...wm.extraInputs);
+  if (hasAudio) args.push("-i", audioPath);
+
+  if (target === "gif") {
+    // GIF собирается палитровым фильтром, звук и водяной знак не нужны.
+    args.push("-map", "0:v:0", "-an");
+    args.push("-vf", "fps=15,scale=iw:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse");
+    args.push("-loop", "0");
+  } else if (wm?.mode === "image") {
+    // Знак впечатывается filter_complex'ом: [vout] → кодек, звук со своего входа.
+    if (wm.filterComplex) args.push("-filter_complex", wm.filterComplex);
+    args.push("-map", "[vout]");
+    if (hasAudio) args.push("-map", `${audioIndex}:a:0`);
+    args.push(...(await ivfVideoCodecArgs(settings, target)));
+    if (hasAudio) args.push(...ivfAudioCodecArgs(settings, target));
+    else args.push("-an");
+  } else {
+    args.push("-map", "0:v:0");
+    if (hasAudio) args.push("-map", `${audioIndex}:a:0`);
+    const canCopy = target === "webm" && !wm;
+    if (canCopy) {
+      // VP9+Opus — родные кодеки WebM: copy без перекода, ноль потерь.
+      args.push("-c:v", "copy");
+      if (hasAudio) args.push("-c:a", "copy");
+      else args.push("-an");
+    } else {
+      args.push(...(await ivfVideoCodecArgs(settings, target)));
+      if (hasAudio) args.push(...ivfAudioCodecArgs(settings, target));
+      else args.push("-an");
+      const fps = Number(settings.fps) || 30;
+      const keySec = Number(settings.keyframeSec) || 1;
+      args.push("-g", String(Math.max(1, Math.round(fps * keySec))));
+      if (wm?.mode === "text") args.push("-vf", wm.videoFilter);
+    }
+    if (["mp4", "mov", "f4v"].includes(target)) args.push("-movflags", "+faststart");
+    if (target === "wmv") args.push("-f", "asf");
+    if (target === "ts") args.push("-f", "mpegts");
+    if (target === "f4v") args.push("-f", "mp4");
+  }
+  args.push(outPath);
+
+  return new Promise((resolve) => {
+    const child = spawn(ffmpegBin(), args, { windowsHide: true });
+    let stderr = "";
+    child.stderr.on("data", (d) => {
+      stderr += String(d);
+      if (stderr.length > 6000) stderr = stderr.slice(-6000);
+    });
+    child.on("error", (err) =>
+      resolve({ ok: false, path: videoPath, converted: false, note: `ffmpeg: ${err.message}` }),
+    );
+    child.on("close", async (code) => {
+      await watermark.cleanup(wmPlan);
+      if (code !== 0) {
+        if (replaceInPlace) await fsp.unlink(outPath).catch(() => {});
+        log.error("ffmpeg", `сборка ${ext.toUpperCase()} из IVF не удалась: ${String(stderr).trim().slice(0, 300)}`);
+        return resolve({
+          ok: false,
+          path: videoPath,
+          converted: false,
+          note: I18N.t("перекод в {0} не удался", ext.toUpperCase()),
+        });
+      }
+      if (replaceInPlace) {
+        try {
+          await fsp.unlink(videoPath);
+          await fsp.rename(outPath, videoPath);
+          outPath = videoPath;
+        } catch (err) {
+          return resolve({ ok: false, path: videoPath, converted: false, note: I18N.t("не удалось заменить файл: {0}", err.message) });
+        }
+      }
+      resolve({ ok: true, path: outPath, converted: true, note: null });
+    });
+  });
+}
+
+/** Видеокодек для финализации IVF: матрица контейнера или copy для WebM. */
+async function ivfVideoCodecArgs(settings, target) {
+  const resolved = CONTAINER_CODECS[target] ? resolveCodecs(target, settings) : null;
+  if (!resolved) return CONTAINER_ARGS[target] ?? [];
+  const capKbps = Math.round(Number(settings.bitrateKbps) || 0);
+  if (resolved.videoKey === "h264") {
+    const chosen = await chooseH264Encoder(settings);
+    const out = [...(chosen.key === "copy" ? H264_ENCODERS.x264.args : chosen.args)];
+    // Пользовательский битрейт — верхняя граница и для финального файла.
+    if (capKbps > 0 && chosen.key !== "copy") {
+      out.push("-maxrate", `${capKbps}k`, "-bufsize", `${capKbps * 2}k`);
+    }
+    return out;
+  }
+  const out = [...VIDEO_CODECS[resolved.videoKey].args];
+  if (capKbps > 0 && resolved.videoKey === "hevc") {
+    out.push("-maxrate", `${capKbps}k`, "-bufsize", `${capKbps * 2}k`);
+  }
+  return out;
+}
+
+/** Аудиокодек для финализации IVF. */
+function ivfAudioCodecArgs(settings, target) {
+  const resolved = CONTAINER_CODECS[target] ? resolveCodecs(target, settings) : null;
+  const audioKey = resolved?.audioKey ?? "aac";
+  const out = [...AUDIO_CODECS[audioKey].args(`${Number(settings.audioQuality) || 192}k`)];
   if (Number(settings.sampleRate)) out.push("-ar", String(settings.sampleRate));
   if (Number(settings.channels)) out.push("-ac", String(settings.channels));
   return out;
@@ -1464,7 +1696,7 @@ function containerForCodec(codec) {
 }
 
 /** Перекод/ремукс в выбранный контейнер (auto → без перекода). */
-function convertContainer(sourcePath, container, options = {}) {
+async function convertContainer(sourcePath, container, options = {}) {
   const raw = String(container || "auto").toLowerCase();
   if (!raw || raw === "auto") return Promise.resolve({ path: sourcePath, converted: false });
   const target = raw === "mpegts" ? "ts" : raw;
@@ -1490,16 +1722,52 @@ function convertContainer(sourcePath, container, options = {}) {
   const settings = readSettings();
   const extra = [];
   const resolved = CONTAINER_CODECS[target] ? resolveCodecs(target, settings) : null;
+  let encoderNote = null;
 
   if (resolved) {
-    extra.push(...VIDEO_CODECS[resolved.videoKey].args);
     const bitrate = `${Number(settings.audioQuality) || 192}k`;
-    extra.push(...AUDIO_CODECS[resolved.audioKey].args(bitrate));
-    if (Number(settings.sampleRate)) extra.push("-ar", String(settings.sampleRate));
-    if (Number(settings.channels)) extra.push("-ac", String(settings.channels));
-    const fps = Number(settings.fps) || 30;
-    const keySec = Number(settings.keyframeSec) || 1;
-    extra.push("-g", String(Math.max(1, Math.round(fps * keySec))));
+    // Если источник уже H.264 High (аппаратный энкодер Chromium), перекод
+    // только портит картинку дополнительным поколением сжатия: пересобираем
+    // контейнер без перекода видео. Звук копируем, когда совпадает кодек.
+    // С водяным знаком копирование невозможно — знак впечатывается в кадр.
+    const probe = options.watermark ? null : await probeMedia(sourcePath);
+    const sourceIsHighH264 =
+      /^(h264|avc1)$/i.test(String(probe?.codec || "")) && /high/i.test(String(probe?.profile || ""));
+    const canCopyAudio =
+      resolved.audioKey === "aac" && /^(aac|mp4a)/i.test(String(probe?.audioCodec || ""));
+    if (resolved.videoKey === "h264" && sourceIsHighH264) {
+      extra.push("-c:v", "copy");
+      if (canCopyAudio) {
+        // Частота/каналы при копировании дорожки не перепрошиваются.
+        extra.push("-c:a", "copy");
+      } else {
+        extra.push(...AUDIO_CODECS[resolved.audioKey].args(bitrate));
+        if (Number(settings.sampleRate)) extra.push("-ar", String(settings.sampleRate));
+        if (Number(settings.channels)) extra.push("-ac", String(settings.channels));
+      }
+      log.info("ffmpeg", "исходник уже H.264 High — пересборка контейнера без перекода");
+    } else {
+      if (resolved.videoKey === "h264") {
+        const chosen = await chooseH264Encoder(settings);
+        extra.push(...(chosen.key === "copy" ? H264_ENCODERS.x264.args : chosen.args));
+        encoderNote = chosen.note;
+      } else {
+        extra.push(...VIDEO_CODECS[resolved.videoKey].args);
+      }
+      // Пользовательский битрейт — верхняя граница и для финального файла:
+      // без неё CRF/CQ перекодировал бы запись с произвольным размером.
+      // Работает для H.264 и HEVC; для остальных кодеков значение не трогаем.
+      const capKbps = Math.round(Number(settings.bitrateKbps) || 0);
+      if (capKbps > 0 && (resolved.videoKey === "h264" || resolved.videoKey === "hevc")) {
+        extra.push("-maxrate", `${capKbps}k`, "-bufsize", `${capKbps * 2}k`);
+      }
+      extra.push(...AUDIO_CODECS[resolved.audioKey].args(bitrate));
+      if (Number(settings.sampleRate)) extra.push("-ar", String(settings.sampleRate));
+      if (Number(settings.channels)) extra.push("-ac", String(settings.channels));
+      const fps = Number(settings.fps) || 30;
+      const keySec = Number(settings.keyframeSec) || 1;
+      extra.push("-g", String(Math.max(1, Math.round(fps * keySec))));
+    }
   }
 
   const muxerArgs = { wmv: ["-f", "asf"], ts: ["-f", "mpegts"], f4v: ["-f", "mp4"] }[target] ?? [];
@@ -1542,7 +1810,13 @@ function convertContainer(sourcePath, container, options = {}) {
       if (code !== 0) {
         if (replaceInPlace) await fsp.unlink(outPath).catch(() => {});
         log.error("ffmpeg", `перекод в ${raw.toUpperCase()} не удался: ${String(stderr).trim().slice(0, 300)}`);
-        return resolve({ path: sourcePath, converted: false, note: I18N.t("перекод в {0} не удался", raw.toUpperCase()) });
+        return resolve({
+          path: sourcePath,
+          converted: false,
+          note: encoderNote
+            ? I18N.t("{0} · перекод в {1} не удался", encoderNote, raw.toUpperCase())
+            : I18N.t("перекод в {0} не удался", raw.toUpperCase()),
+        });
       }
       if (replaceInPlace) {
         try {
@@ -1553,7 +1827,7 @@ function convertContainer(sourcePath, container, options = {}) {
           return resolve({ path: sourcePath, converted: false, note: I18N.t("не удалось заменить файл: {0}", err.message) });
         }
       }
-      resolve({ path: outPath, converted: true });
+      resolve({ path: outPath, converted: true, note: encoderNote });
     });
   });
 }
@@ -1649,7 +1923,11 @@ function probeMedia(filePath) {
         resolve({
           width: Number(video?.width) || 0,
           height: Number(video?.height) || 0,
+          codec: String(video?.codec_name || ""),
+          profile: String(video?.profile || ""),
+          pixFmt: String(video?.pix_fmt || ""),
           hasAudio: Boolean(audio),
+          audioCodec: String(audio?.codec_name || ""),
           duration: Number(parsed.format?.duration) || 0,
         });
       } catch {
@@ -1700,7 +1978,7 @@ async function mergeMedia({ paths }) {
     ...args,
     "-filter_complex", filters.join(";"),
     ...maps,
-    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    "-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
     "-g", String(Math.max(1, Math.round(fps * keySec))),
     ...(allAudio ? audioTailArgs(settings) : []),
     "-movflags", "+faststart",
@@ -1737,7 +2015,7 @@ async function speedMedia({ filePath, speed }) {
     "-i", filePath,
     "-filter_complex", filters,
     ...maps,
-    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    "-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
     ...(hasAudio ? audioTailArgs(settings) : []),
     "-movflags", "+faststart",
     outPath,
@@ -1832,7 +2110,7 @@ async function trimMedia({ filePath, startSec, endSec, accurate = true }) {
   const outPath = await uniquePath(path.join(path.dirname(filePath), `${base}_trim_${stamp}${ext}`));
   const common = ["-ss", String(start), "-to", String(end), "-i", filePath];
   const args = accurate
-    ? [...common, "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    ? [...common, "-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
        "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", outPath]
     : [...common, "-c", "copy", outPath];
   const run = await runFfmpeg(args);
@@ -2018,11 +2296,16 @@ async function startCapture(payload) {
   const dir = outputDir();
   await fsp.mkdir(dir, { recursive: true });
 
-  const ext = payload.ext === ".mp4" ? ".mp4" : ".webm";
+  const ext = [".mp4", ".webm", ".ivf"].includes(payload.ext) ? payload.ext : ".webm";
   const filePath = await uniquePath(path.join(dir, stampName(ext)));
   // Пишем в <имя>.part.<ext>: недописанная запись не выглядит готовым файлом,
   // а при падении процесса её можно попробовать починить (см. recoverPartFiles).
   const partPath = filePath.replace(/(\.[^.]+)$/, ".part$1");
+  // Движок WebCodecs пишет видео в IVF, звук — отдельным Opus/WebM рядом.
+  capture.audioPath = ext === ".ivf" ? filePath.replace(/\.ivf$/i, "_audio.webm") : null;
+  capture.audioPartPath =
+    ext === ".ivf" ? partPath.replace(/\.part\.ivf$/i, ".part_audio.webm") : null;
+  capture.audioStream = null;
 
   capture.target = target;
   capture.filePath = filePath;
@@ -2149,6 +2432,9 @@ async function finishCapture(payload = {}) {
   const ws = capture.stream;
   const wasAudio = Boolean(capture.audio);
   const wasSelfVisible = Boolean(capture.selfVisible);
+  const audioPartPath = capture.audioPartPath;
+  const audioPath = capture.audioPath;
+  const audioWs = capture.audioStream;
 
   capture.active = false;
   capture.target = null;
@@ -2157,6 +2443,9 @@ async function finishCapture(payload = {}) {
   capture.partPath = null;
   capture.audio = false;
   capture.selfVisible = false;
+  capture.audioPath = null;
+  capture.audioPartPath = null;
+  capture.audioStream = null;
   if (wasSelfVisible) setSelfProtection(readSettings().hideSelf !== false);
   clearTimeout(capture.autostopTimer);
   capture.autostopTimer = null;
@@ -2169,6 +2458,27 @@ async function finishCapture(payload = {}) {
     if (!ws) return resolve();
     ws.end(resolve);
   });
+
+  // Аудио-дорожка движка WebCodecs: закрываем поток и переименовываем вместе
+  // с видео. Пустой файл (< 512 Б) удаляем — записи без звука он не нужен.
+  let audioSource = null;
+  if (audioPath) {
+    await new Promise((resolve) => (audioWs ? audioWs.end(resolve) : resolve()));
+    if (audioPartPath) {
+      try {
+        await fsp.rename(audioPartPath, audioPath);
+      } catch (err) {
+        log.warn("capture", `аудио-дорожка не переименована: ${err.message} [SR2003]`);
+      }
+    }
+    try {
+      const stat = await fsp.stat(audioPath);
+      if (stat.size > 512) audioSource = audioPath;
+      else await fsp.unlink(audioPath).catch(() => {});
+    } catch {
+      /* файла нет — запись без звука */
+    }
+  }
 
   // Снимаем суффикс .part только когда поток закрыт: до этого файл считается
   // недописанным. Если переименовать не вышло — работаем с .part как с файлом,
@@ -2186,6 +2496,11 @@ async function finishCapture(payload = {}) {
   const settings = readSettings();
   const wanted = String(settings.videoContainer || "auto").toLowerCase();
   const codecWanted = String(settings.videoCodec || "auto").toLowerCase();
+  const encoderWanted = String(settings.videoEncoder || "auto").toLowerCase();
+  // Профиль Chromium-файла: если там уже H.264 High, повторный перекод не нужен.
+  const sourceProbe = wasAudio ? null : await probeMedia(sourcePath);
+  const sourceIsH264 = /^(h264|avc1)$/i.test(String(sourceProbe?.codec || ""));
+  const sourceIsHighH264 = sourceIsH264 && /high/i.test(String(sourceProbe?.profile || ""));
   // Явный кодек требует перекода, даже если контейнер совпал с родным для Chromium.
   const targetContainer = wanted === "auto"
     ? (codecWanted !== "auto" ? containerForCodec(codecWanted) : "auto")
@@ -2213,7 +2528,28 @@ async function finishCapture(payload = {}) {
     }
   }
 
-  if (wasAudio) {
+  if (ext === ".ivf" && !wasAudio) {
+    // Движок WebCodecs: VP9/IVF (+ звук Opus/WebM отдельно). Финальный формат
+    // собирается ffmpeg'ом одной сборкой; WebM — copy без перекода.
+    const result = await finalizeIvfCapture({
+      videoPath: sourcePath,
+      audioPath: audioSource,
+      settings,
+      target: targetContainer === "auto" ? "mp4" : targetContainer,
+      wmPlan,
+    });
+    finalPath = result.path;
+    converted = result.converted;
+    note = result.note ?? null;
+    if (result.ok === false) {
+      failCode = /ffmpeg/i.test(String(result.note || "")) ? "SR5001" : "SR2002";
+      log.error("capture", `${note || "сборка не удалась"} [${failCode}]`);
+    } else if (converted) {
+      for (const item of [sourcePath, audioSource].filter(Boolean)) {
+        if (item !== finalPath) await fsp.unlink(item).catch(() => {});
+      }
+    }
+  } else if (wasAudio) {
     const result = await convertAudio(sourcePath, settings.audioFormat);
     finalPath = result.path;
     converted = result.converted;
@@ -2241,7 +2577,20 @@ async function finishCapture(payload = {}) {
       log.info("watermark", `наложен (${wmPlan.mode}), контейнер ${wmTarget.toUpperCase()}`);
     }
   } else if (targetContainer === "auto") {
-    if (ext === ".webm" && ffmpegPath) {
+    if (ext === ".mp4" && encoderWanted !== "copy" && sourceIsH264 && !sourceIsHighH264) {
+      // Chromium пишет H.264 Baseline/Constrained Baseline — перекодируем в High.
+      const result = await convertContainer(sourcePath, "mp4", { force: true });
+      finalPath = result.path;
+      converted = result.converted;
+      note = result.note ?? null;
+      if (!converted) {
+        failCode = "SR2002";
+        note = note || I18N.t("профиль High не применён: перекод не удался");
+        log.error("capture", `${note} [SR2002]`);
+      } else if (finalPath !== sourcePath) {
+        await fsp.unlink(sourcePath).catch(() => {});
+      }
+    } else if (ext === ".webm" && ffmpegPath) {
       try {
         finalPath = await convertToMp4(sourcePath);
         converted = true;
@@ -2256,7 +2605,17 @@ async function finishCapture(payload = {}) {
       failCode = "SR5001";
     }
   } else {
-    const result = await convertContainer(sourcePath, targetContainer, { force: codecWanted !== "auto" });
+    const targetVideoKey = CONTAINER_CODECS[targetContainer]
+      ? resolveCodecs(targetContainer, settings)?.videoKey
+      : null;
+    const forceHighProfile =
+      encoderWanted !== "copy" &&
+      targetVideoKey === "h264" &&
+      sourceIsH264 &&
+      !sourceIsHighH264;
+    const result = await convertContainer(sourcePath, targetContainer, {
+      force: codecWanted !== "auto" || forceHighProfile,
+    });
     finalPath = result.path;
     converted = result.converted;
     note = result.note ?? null;
@@ -2318,6 +2677,9 @@ async function abortCapture() {
   const partPath = capture.partPath;
   const ws = capture.stream;
   const wasSelfVisible = Boolean(capture.selfVisible);
+  const audioWs = capture.audioStream;
+  const audioPartPath = capture.audioPartPath;
+  const audioPath = capture.audioPath;
   capture.active = false;
   capture.target = null;
   capture.stream = null;
@@ -2325,6 +2687,9 @@ async function abortCapture() {
   capture.partPath = null;
   capture.audio = false;
   capture.selfVisible = false;
+  capture.audioStream = null;
+  capture.audioPartPath = null;
+  capture.audioPath = null;
   if (wasSelfVisible) setSelfProtection(readSettings().hideSelf !== false);
   clearTimeout(capture.autostopTimer);
   capture.autostopTimer = null;
@@ -2333,7 +2698,10 @@ async function abortCapture() {
   hidePanel();
   hideRecordingFrame();
   await new Promise((resolve) => (ws ? ws.end(resolve) : resolve()));
+  if (audioWs) await new Promise((resolve) => audioWs.end(resolve));
   if (partPath) await fsp.unlink(partPath).catch(() => {});
+  if (audioPartPath) await fsp.unlink(audioPartPath).catch(() => {});
+  if (audioPath) await fsp.unlink(audioPath).catch(() => {});
   if (filePath) await fsp.unlink(filePath).catch(() => {});
   log.warn("capture", `запись отменена, файл удалён: ${path.basename(filePath || "?")}`);
   return { ok: true };
@@ -2352,7 +2720,9 @@ async function recoverPartFiles() {
   } catch {
     return { fixed: 0, kept: 0 };
   }
-  const parts = names.filter((name) => /\.part\.[^.]+$/i.test(name));
+  const parts = names.filter(
+    (name) => /\.part\.[^.]+$/i.test(name) || /\.part_audio\.webm$/i.test(name),
+  );
   let fixed = 0;
   let kept = 0;
   for (const name of parts) {
@@ -2360,7 +2730,12 @@ async function recoverPartFiles() {
     const st = await fsp.stat(partPath).catch(() => null);
     if (!st || !st.size) continue;
     if (Date.now() - st.mtimeMs < 60_000) continue; // возможно, запись ещё идёт
-    const finalPath = path.join(dir, name.replace(/\.part(\.[^.]+)$/i, "$1"));
+    const finalPath = path.join(
+      dir,
+      /\.part_audio\.webm$/i.test(name)
+        ? name.replace(/\.part_audio\.webm$/i, "_audio.webm")
+        : name.replace(/\.part(\.[^.]+)$/i, "$1"),
+    );
     log.warn("capture", `найден недописанный файл ${name} (${st.size} Б), пробую починить [SR2003]`);
     if (!ffmpegPath) {
       kept += 1;
@@ -2368,7 +2743,9 @@ async function recoverPartFiles() {
       continue;
     }
     const isMp4 = /\.mp4$/i.test(name);
+    const isIvf = /\.ivf$/i.test(name);
     const args = ["-i", partPath, "-c", "copy"];
+    if (isIvf) args.unshift("-f", "ivf");
     if (isMp4) args.push("-movflags", "+faststart");
     args.push(finalPath);
     const run = await runFfmpeg(args);
@@ -2500,8 +2877,35 @@ function registerIpc() {
 
   ipcMain.handle("capture:start", (_e, payload) => startCapture(payload));
   ipcMain.on("capture:chunk", (_e, chunk) => {
+    // Движок WebCodecs присылает {kind: "video"|"audio", buffer}; MediaRecorder
+    // (запасной движок) — голый буфер, он идёт в видеофайл.
+    const isEnvelope =
+      chunk &&
+      typeof chunk === "object" &&
+      !Buffer.isBuffer(chunk) &&
+      !(chunk instanceof ArrayBuffer) &&
+      !ArrayBuffer.isView(chunk);
+    if (isEnvelope && chunk.kind === "audio") {
+      const buf = chunkToBuffer(chunk.buffer);
+      if (!buf) return;
+      if (!capture.audioStream) {
+        if (!capture.audioPartPath) return;
+        try {
+          capture.audioStream = fs.createWriteStream(capture.audioPartPath);
+        } catch (err) {
+          log.error("capture", `не открылся поток звука ${capture.audioPartPath}: ${err.message} [SR1001]`);
+          return;
+        }
+        capture.audioStream.on("error", (err) => {
+          log.error("capture", `ошибка записи звука: ${err.message} [SR1001]`);
+        });
+      }
+      capture.audioStream.write(buf);
+      armAutostop();
+      return;
+    }
     if (!capture.stream) return;
-    const buf = chunkToBuffer(chunk);
+    const buf = isEnvelope ? chunkToBuffer(chunk.buffer) : chunkToBuffer(chunk);
     if (!buf) return;
     capture.stream.write(buf);
     armAutostop();

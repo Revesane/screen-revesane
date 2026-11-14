@@ -125,6 +125,7 @@
     "Во время записи режим менять нельзя": "The mode can't be changed while recording",
     "Водяной знак": "Watermark",
     "Водяной знак: {0}": "Watermark: {0}",
+    "Вписать": "Fit",
     "Все": "All",
     "Вся библиотека": "Whole library",
     "Вход": "Input",
@@ -209,6 +210,32 @@
     "Картинка не открылась: {0}. Для TIFF/BMP используйте «Открыть».": "Image didn't open: {0}. For TIFF/BMP use “Open”.",
     "Качество записи": "Recording quality",
     "Качество звука": "Audio quality",
+    "Качество скриншота (JPEG)": "Screenshot quality (JPEG)",
+    "Битрейт видео": "Video bitrate",
+    "Масштаб предпросмотра": "Preview scale",
+    "Мбит/с": "Mbps",
+    "Кодек H.264 (профиль High)": "H.264 codec (High profile)",
+    "Авто: NVENC/QSV, иначе x264": "Auto: NVENC/QSV, otherwise x264",
+    "Без перекода (профиль Chromium)": "No re-encode (Chromium profile)",
+    "Дополнительно": "Advanced",
+    "Разрешение видео": "Video resolution",
+    "Экран: родное разрешение": "Screen: native resolution",
+    "Экран: строго 16:9": "Screen: strict 16:9",
+    "Источник (как есть)": "Source (as is)",
+    "Область: 16:9 (без растяжения)": "Region: 16:9 (no stretch)",
+    "«Экран» пишет в родном разрешении монитора, а не в размере окна. «Строго 16:9» подрезает или дополняет кадр до пропорций 16:9. «Область: 16:9» дополняет выделение чёрными полями до 16:9 без растяжения — картинка остаётся резкой. Пресеты 1080p/1440p при необходимости увеличивают область.":
+      "“Screen” records at the monitor’s native resolution, not the window size. “Strict 16:9” crops or pads the frame to 16:9. “Region: 16:9” pads the selection with black bars to 16:9 without stretching, so the picture stays sharp. The 1080p/1440p presets enlarge the region when needed.",
+    "Разрешение и битрейт видео, частота кадров, качество записи и скриншотов. Настройки применяются к следующей записи.":
+      "Video resolution and bitrate, frame rate, recording and screenshot quality. Settings apply to the next recording.",
+    "Финальный файл перекодируется в H.264 High: x264 с preset slower и CRF 16 либо аппаратный NVENC/QSV с CQ 16. Если источник уже High — файл пересобирается без перекода, без потери качества. При остановке записи перекод занимает время; «Авто» выбирает самый быстрый доступный энкодер. Профиль High применяется к H.264, для HEVC действует свой профиль.":
+      "The final file is re-encoded to H.264 High: x264 with preset slower and CRF 16, or hardware NVENC/QSV with CQ 16. If the source is already High, the file is rebuilt without re-encoding, with no quality loss. Conversion takes time when recording stops; “Auto” picks the fastest available encoder. High profile applies to H.264; HEVC uses its own profile.",
+    "Битрейт задаётся в Мбит/с. 0 — авто: значение считается из разрешения, FPS и качества записи. Иначе число ограничивает битрейт и финального файла. Для 1080p60 хватает 12–20 Мбит/с, для 4K — 40–80 Мбит/с.":
+      "Bitrate is set in Mbps. 0 means auto: it is calculated from resolution, FPS and recording quality. Otherwise the value caps the final file's bitrate too. 12–20 Mbps is enough for 1080p60, 40–80 Mbps for 4K.",
+    "Скриншоты пишутся в исходном разрешении, без уменьшения. Ползунок влияет только на JPEG: 100 — максимум; PNG всегда без потерь.":
+      "Screenshots are saved at source resolution without downscaling. The slider only affects JPEG: 100 is maximum; PNG is always lossless.",
+    "профиль High не применён: перекод не удался": "High profile was not applied: conversion failed",
+    "{0} недоступен — использую x264": "{0} is unavailable — using x264",
+    "{0} · перекод в {1} не удался": "{0} · conversion to {1} failed",
     "Клавиша «{0}» очищена": "Key “{0}” cleared",
     "Клавиши": "Keys",
     "Клавиши и пути подставляются из текущих настроек": "Keys and paths are taken from the current settings",
@@ -789,5 +816,39 @@
       "You can start and stop recording with the {0} key — even when the window is minimized or a game is open.",
     "Снимок можно делать клавишей {0} из любой программы — окно Screen Revesane открывать не нужно.":
       "You can take a screenshot with the {0} key from any program — no need to open Screen Revesane.",
+    "Что нового в версии {0}": "What's new in version {0}",
+    "Понятно": "Got it",
+    "установлена": "installed",
+    "Внутренние улучшения и исправления.": "Internal improvements and fixes.",
+    "Редактор: масштаб предпросмотра «1:1» — кадр пиксель в пиксель, как на мониторе; текст больше не мылится от масштабирования окна.":
+      "Editor: “1:1” preview scale — the frame is shown pixel-perfect, just like on your monitor; text is no longer softened by window scaling.",
+    "Редактор: если масштаб окна близок к родному, режим 1:1 с прокруткой включается сам; кнопка «Вписать» возвращает обзор целиком.":
+      "Editor: when the window scale is close to native, 1:1 with scrolling turns on automatically; the “Fit” button brings back the overview.",
+    "Редактор: в полном экране кадр больше не обрезается снизу — «Вписать» показывает запись целиком.":
+      "Editor: full screen no longer crops the bottom of the frame — “Fit” shows the whole recording.",
+    "После каждого обновления появляется окно «Что нового» с описанием изменений новой версии.":
+      "After each update, a “What's new” window describes the changes in the new version.",
+    "Список изменений можно открыть снова в любой момент: «О программе» → «Что нового».":
+      "You can reopen the changelog anytime: “About” → “What's new”.",
+    "Исправлена запись видео: экспериментальный движок WebCodecs отключён — файлы снова содержат все кадры.":
+      "Fixed video recording: the experimental WebCodecs engine is disabled — files contain all frames again.",
+    "Исправлена ошибка, из-за которой запись могла не начаться из-за двойного старта рекордера.":
+      "Fixed a bug where recording could fail to start because the recorder was started twice.",
+    "Новый раздел настроек «Дополнительно»: разрешение видео, битрейт, энкодер H.264, частота кадров, качество записи и скриншотов.":
+      "New “Advanced” settings section: video resolution, bitrate, H.264 encoder, frame rate, recording and screenshot quality.",
+    "Финальное видео перекодируется в H.264 High (CRF 16) для максимального качества; аппаратные NVENC/QSV ускоряют перекод.":
+      "Final video is re-encoded to H.264 High (CRF 16) for maximum quality; hardware NVENC/QSV speed up the conversion.",
+    "Экран пишется в родном разрешении монитора; доступны пресеты 16:9 и 1080p/1440p.":
+      "The screen is recorded at the monitor's native resolution; 16:9 and 1080p/1440p presets are available.",
+    "Качество скриншотов JPEG регулируется, PNG всегда без потерь.":
+      "JPEG screenshot quality is adjustable; PNG is always lossless.",
+    "Исправлено копирование снимков в буфер обмена.": "Fixed copying screenshots to the clipboard.",
+    "Трей, автозапуск вместе с Windows, рамки записи в цветах темы.":
+      "System tray, autostart with Windows, recording frames in theme colors.",
+    "Темы оформления, снимок поверх записи, новый компактный режим.":
+      "Color themes, screenshot during recording, new compact mode.",
+    "Тур по программе, умные подсказки, автоматические обновления.":
+      "App tour, smart tips, automatic updates.",
+    "Английский интерфейс и выбор языка.": "English interface and language selection.",
   };
 });

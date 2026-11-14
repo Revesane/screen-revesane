@@ -2,6 +2,7 @@
 
 import { Recorder, pickMimeType, mimeToExt, grabStill, grabRegion } from "../recorder/recorder.js";
 import { createTour } from "./tour.js";
+import { createWhatsNew } from "./changelog.js";
 import { createTips } from "./tips.js";
 import { mountScenes } from "./scenes.js";
 
@@ -30,7 +31,8 @@ const state = {
 };
 
 const recorder = new Recorder({
-  onChunk: (buffer) => window.api.sendChunk(buffer),
+  // kind: "video" | "audio" — движок WebCodecs пишет звук отдельной дорожкой.
+  onChunk: (buffer, kind) => window.api.sendChunk({ kind: kind || "video", buffer }),
   onError: (err) => {
     setRecState("error");
     $("status").textContent = I18N.t("Ошибка записи");
@@ -56,6 +58,20 @@ const tour = createTour({
   },
 });
 
+// «Что нового» после обновления: сначала список изменений, после закрытия — тур.
+let tourAfterWhatsNew = false;
+const whatsNew = createWhatsNew({
+  onClose: () => {
+    if (!tourAfterWhatsNew) return;
+    tourAfterWhatsNew = false;
+    setTimeout(() => {
+      if (!state.recording && !compactMode && !tour.isOpen()) {
+        tour.start({ updatedTo: state.info?.version || "" });
+      }
+    }, 400);
+  },
+});
+
 const tips = createTips({
   settings: () => state.settings,
   save: (patch) => saveSetting(patch),
@@ -63,6 +79,7 @@ const tips = createTips({
   // только если окно приложения исключено из захвата.
   blocked: () =>
     tour.isOpen() ||
+    whatsNew.isOpen() ||
     compactMode ||
     (state.recording && state.mode !== "audio" && state.settings?.hideSelf === false),
 });
@@ -283,7 +300,7 @@ function watchLevels(mic, system) {
 /** Сколько мегабайт в минуту даёт видео при текущем качестве (оценка для 1080p). */
 function estimateMbPerMinute() {
   const s = state.settings || {};
-  const factor = { low: 0.05, balanced: 0.1, high: 0.18 }[s.quality] ?? 0.1;
+  const factor = { low: 0.05, balanced: 0.1, high: 0.35 }[s.quality] ?? 0.1;
   const fps = Number(s.fps) || 30;
   return (factor * 1920 * 1080 * fps * 60) / 8 / 1e6;
 }
@@ -1568,8 +1585,9 @@ async function beginRecording() {
     if (state.settings.countdown > 0) await runCountdown(state.settings.countdown);
 
     const isAudio = state.mode === "audio";
-    const mime = pickMimeType();
-    const ext = isAudio ? ".webm" : mimeToExt(mime);
+    // Движок записи: WebCodecs VP9 (.ivf) или MediaRecorder (.mp4/.webm).
+    const engine = isAudio ? null : await recorder.pickEngine();
+    const ext = isAudio ? ".webm" : engine.ext;
     const payloadTarget = { ...target, systemAudio: loopbackWanted() };
 
     const started = await window.api.startCapture({
@@ -1611,6 +1629,10 @@ async function beginRecording() {
           display: started.display,
           fps: Number(state.settings.fps),
           quality: state.settings.quality,
+          resolution: state.settings.resolution || "screen",
+          bitrateKbps: Number(state.settings.bitrateKbps) || 0,
+          keyframeSec: Number(state.settings.keyframeSec) || 1,
+          audioKbps: Number(state.settings.audioQuality) || 192,
           mic: Boolean(state.settings.mic),
           micDevice: state.settings.micDeviceId || "",
           systemAudio: Boolean(state.settings.systemAudio),
@@ -1638,10 +1660,14 @@ async function beginRecording() {
     if (state.mode === "region" && state.region) {
       // Формат показываем в значке рядом с таймером — тоже вне кадра.
       const container = String(state.settings.videoContainer || "auto").toLowerCase();
+      // Движок WebCodecs пишет IVF, но финальным контейнером по умолчанию
+      // будет MP4 — в значке честно показываем именно его.
       const format =
-        container === "auto"
-          ? mimeToExt(info.mimeType).replace(".", "").toUpperCase()
-          : container.toUpperCase();
+        container !== "auto"
+          ? container.toUpperCase()
+          : info.engine === "webcodecs-vp9"
+            ? "MP4"
+            : mimeToExt(info.mimeType).replace(".", "").toUpperCase();
       void window.api.showFrame({ region: state.region, format });
     }
     if (state.settings.minimizeOnRecord) window.api.minimize();
@@ -1680,6 +1706,7 @@ async function beginRecording() {
       void endRecording();
     }
   } catch (err) {
+    console.error("beginRecording failed:", err && err.stack ? err.stack : err);
     await window.api.abortCapture().catch(() => {});
     await recorder.cancel().catch(() => {});
     void window.api.hideFrame();
@@ -1805,7 +1832,7 @@ async function takeScreenshot() {
     await window.api.selfProtect(false).catch(() => {});
     await window.api.arm({ ...target, systemAudio: false });
     const format = state.settings.screenshotFormat === "jpg" ? "image/jpeg" : "image/png";
-    const dataUrl = await grabStill(target, format);
+    const dataUrl = await grabStill(target, format, shotQualityFactor());
     const result = await window.api.screenshot({ dataUrl, format: state.settings.screenshotFormat });
     if (result?.ok) toast(I18N.t("Скриншот сохранён · {0}", formatSize(result.size)), "ok");
     renderLibrary();
@@ -2518,6 +2545,9 @@ const editor = {
   outSec: 0,
   dragging: null,
   busy: false,
+  zoom: "auto",
+  zoomManual: false,
+  zoomEffective: "fit",
 };
 
 /** Открывает в редакторе картинку, которой ещё нет на диске (снимок области). */
@@ -2540,6 +2570,8 @@ async function openEditor(row) {
   editor.duration = 0;
   editor.inSec = 0;
   editor.outSec = 0;
+  editor.zoom = "auto";
+  editor.zoomManual = false;
 
   $("editor").hidden = false;
   $("editor-title").textContent = row.name;
@@ -2560,6 +2592,7 @@ async function openEditor(row) {
     video.pause();
     video.removeAttribute("src");
     video.hidden = true;
+    $("editor-stage").classList.remove("is-native");
     image.hidden = true;
     image.removeAttribute("src");
     $("editor-timeline").style.display = "none";
@@ -2604,6 +2637,7 @@ async function openEditor(row) {
     editor.duration = Number.isFinite(video.duration) ? video.duration : 0;
     editor.inSec = 0;
     editor.outSec = editor.duration;
+    applyEditorZoom();
     editorPaint();
   };
   editorPaint();
@@ -2674,6 +2708,38 @@ function paintEditorFullscreen() {
   const on = Boolean(document.fullscreenElement);
   if (label) label.textContent = on ? I18N.t("Свернуть") : I18N.t("Во весь экран");
   if (button) button.classList.toggle("is-on", on);
+}
+
+/**
+ * Масштаб предпросмотра. Дробное масштабирование видео размывает мелкий текст
+ * (билинейная фильтрация GPU), поэтому при масштабе, близком к родному,
+ * показываем кадр 1:1 с прокруткой — пиксель в пиксель, как на мониторе.
+ */
+function applyEditorZoom() {
+  const video = $("editor-video");
+  const stage = $("editor-stage");
+  if (!video || !stage || video.hidden || !video.videoWidth) return;
+  let mode = editor.zoom;
+  if (mode === "auto") {
+    const rect = stage.getBoundingClientRect();
+    const scale = Math.min(rect.width / video.videoWidth, rect.height / video.videoHeight);
+    mode = scale >= 0.85 ? "11" : "fit";
+  }
+  editor.zoomEffective = mode;
+  const native = mode === "11";
+  stage.classList.toggle("is-native", native);
+  video.style.width = native ? `${video.videoWidth}px` : "";
+  video.style.height = native ? `${video.videoHeight}px` : "";
+  const label = $("editor-zoom-label");
+  // Подпись — действие, которое выполнит кнопка, а не текущий режим.
+  if (label) label.textContent = native ? I18N.t("Вписать") : "1:1";
+  $("editor-zoom")?.classList.toggle("is-on", native);
+}
+
+function toggleEditorZoom() {
+  editor.zoom = editor.zoomEffective === "11" ? "fit" : "11";
+  editor.zoomManual = true;
+  applyEditorZoom();
 }
 
 function editorPaint() {
@@ -3000,7 +3066,7 @@ function bindMarkup() {
   $("markup-copy").addEventListener("click", async () => {
     if (!markup.ctx || !editor.row) return;
     const format = state.settings.screenshotFormat === "jpg" ? "jpeg" : "png";
-    const dataUrl = markup.canvas.toDataURL(format === "jpeg" ? "image/jpeg" : "image/png", 0.92);
+    const dataUrl = markup.canvas.toDataURL(format === "jpeg" ? "image/jpeg" : "image/png", shotQualityFactor());
     const result = await window.api.saveAnnotated({ dataUrl, format, baseName: editor.row.name });
     if (result?.ok) {
       const name = result.path.split(/[\\/]/).pop();
@@ -3071,13 +3137,20 @@ function bindEditor() {
   });
 
   $("editor-fullscreen").addEventListener("click", () => void toggleEditorFullscreen());
+  $("editor-zoom").addEventListener("click", () => toggleEditorZoom());
   $("editor-stage").addEventListener("dblclick", () => {
     // В разметке двойной клик — это два штриха по картинке, там полный экран
     // включается только кнопкой.
     if (!$("markup-bar").hidden) return;
     void toggleEditorFullscreen();
   });
-  document.addEventListener("fullscreenchange", paintEditorFullscreen);
+  document.addEventListener("fullscreenchange", () => {
+    paintEditorFullscreen();
+    applyEditorZoom();
+  });
+  window.addEventListener("resize", () => {
+    if (!$("editor").hidden) applyEditorZoom();
+  });
   paintEditorFullscreen();
 
   $("editor-play").addEventListener("click", () => toggleEditorPlay());
@@ -3385,6 +3458,12 @@ function paintRange(range) {
   range.style.setProperty("--fill", `${((Number(range.value) - Number(range.min)) / span) * 100}%`);
 }
 
+/** Качество JPEG для снимков: 0…1, по умолчанию максимум. */
+function shotQualityFactor() {
+  const value = Number(state.settings?.shotQuality);
+  return Number.isFinite(value) ? Math.max(50, Math.min(100, value)) / 100 : 1;
+}
+
 /** Баланс микрофона и системного звука из настроек — в параметры рекордера. */
 function mixSettings() {
   const s = state.settings || {};
@@ -3559,8 +3638,25 @@ async function renderAudioDevices() {
 function applySettingsToUi() {
   void applyTheme();
   const s = state.settings;
+  setSelectValue($("sel-resolution"), s.resolution || "screen");
   $("sel-fps").value = String(s.fps);
   $("sel-quality").value = s.quality;
+  setSelectValue($("sel-encoder"), s.videoEncoder || "auto");
+  // Битрейт в настройках — кбит/с, в интерфейсе — Мбит/с. 0 значит «авто».
+  const bitrateMbps = Math.max(0, Number(s.bitrateKbps ?? 0) / 1000);
+  const bitrateRange = $("rng-bitrate");
+  const bitrateNum = $("num-bitrate");
+  if (bitrateRange) {
+    bitrateRange.value = String(Math.min(Number(bitrateRange.max), Math.round(bitrateMbps)));
+    paintRange(bitrateRange);
+  }
+  if (bitrateNum) bitrateNum.value = String(bitrateMbps);
+  const shotQuality = Math.max(50, Math.min(100, Number(s.shotQuality ?? 100)));
+  if ($("rng-shotquality")) {
+    $("rng-shotquality").value = String(shotQuality);
+    paintRange($("rng-shotquality"));
+    $("out-shotquality").textContent = `${shotQuality}%`;
+  }
   $("sel-countdown").value = String(s.countdown);
   $("sel-container").value = s.videoContainer || "auto";
   $("sel-shotformat").value = s.screenshotFormat || "png";
@@ -3878,8 +3974,43 @@ function bindEvents() {
     });
   }
 
+  $("sel-resolution").addEventListener("change", (e) => void saveSetting({ resolution: e.target.value }));
   $("sel-fps").addEventListener("change", (e) => void saveSetting({ fps: Number(e.target.value) }));
   $("sel-quality").addEventListener("change", (e) => void saveSetting({ quality: e.target.value }));
+  $("sel-encoder").addEventListener("change", (e) => void saveSetting({ videoEncoder: e.target.value }));
+
+  const bitrateRange = $("rng-bitrate");
+  const bitrateNum = $("num-bitrate");
+  if (bitrateRange && bitrateNum) {
+    const applyBitrate = (raw, save) => {
+      const value = Math.max(0, Math.min(200, Number(raw) || 0));
+      const rounded = Math.round(value * 10) / 10;
+      bitrateRange.value = String(Math.min(Number(bitrateRange.max), Math.round(rounded)));
+      paintRange(bitrateRange);
+      if (save) void saveSetting({ bitrateKbps: Math.round(rounded * 1000) });
+    };
+    bitrateRange.addEventListener("input", () => {
+      bitrateNum.value = bitrateRange.value;
+      paintRange(bitrateRange);
+    });
+    bitrateRange.addEventListener("change", () => applyBitrate(bitrateRange.value, true));
+    bitrateNum.addEventListener("input", () => {
+      const value = Math.max(0, Math.min(Number(bitrateRange.max), Number(bitrateNum.value) || 0));
+      bitrateRange.value = String(Math.round(value));
+      paintRange(bitrateRange);
+    });
+    bitrateNum.addEventListener("change", () => applyBitrate(bitrateNum.value, true));
+  }
+
+  if ($("rng-shotquality")) {
+    $("rng-shotquality").addEventListener("input", () => {
+      $("out-shotquality").textContent = `${$("rng-shotquality").value}%`;
+      paintRange($("rng-shotquality"));
+    });
+    $("rng-shotquality").addEventListener("change", () =>
+      void saveSetting({ shotQuality: Number($("rng-shotquality").value) }),
+    );
+  }
   $("sel-countdown").addEventListener("change", (e) => void saveSetting({ countdown: Number(e.target.value) }));
   $("sel-container").addEventListener("change", (e) => {
     void saveSetting({ videoContainer: e.target.value }).then(() => refreshCodecOptions());
@@ -4114,6 +4245,7 @@ function bindEvents() {
     await applyTheme();
   });
   $("btn-check-update")?.addEventListener("click", () => void checkUpdateManually());
+  $("btn-whatsnew")?.addEventListener("click", () => whatsNew.open({ version: state.info?.version }));
   $("ru-main")?.addEventListener("click", () => void runUpdateAction());
   $("ru-notes")?.addEventListener("click", () => void window.api.openUpdatePage());
   $("ru-skip")?.addEventListener("click", async () => {
@@ -4321,6 +4453,9 @@ function bindEvents() {
 
 async function runSelftest() {
   const report = { ok: false, steps: [], recordings: [] };
+  // Прогон меняет настройки под себя; в конце возвращаем всё как было, чтобы
+  // самопроверка не затирала разрешение, битрейт, формат снимков и звука.
+  const beforeSettings = { ...(state.settings || {}) };
   try {
     await refreshSources();
     const screen = state.sources.find((s) => s.kind === "screen");
@@ -4824,6 +4959,8 @@ async function runSelftest() {
   } catch {
     report.library = [];
   }
+  // Возвращаем настройки до отчёта: main завершает приложение сразу после него.
+  await saveSetting(beforeSettings).catch(() => {});
   await window.api.selftestReport(report);
 }
 
@@ -4857,6 +4994,11 @@ async function runModeTests() {
     "videoContainer",
     "videoCodec",
     "audioCodec",
+    "resolution",
+    "bitrateKbps",
+    "videoEncoder",
+    "shotQuality",
+    "screenshotFormat",
     "autostopMin",
   ];
   const before = { ...(state.settings || {}) };
@@ -5135,6 +5277,7 @@ async function relocalize(lang) {
   if (lang === I18N.getLang()) return;
   I18N.setLang(lang);
   I18N.applyDom();
+  if (!$("editor").hidden) applyEditorZoom();
   // Подписи кодеков переводит main — берём их заново.
   state.info = await window.api.info();
   applySettingsToUi();
@@ -5152,6 +5295,7 @@ async function relocalize(lang) {
   renderMini();
   tips.hide();
   tour.relocalize();
+  whatsNew.relocalize();
   renderUpdate();
   mountScenes(document.getElementById("view-help"));
 }
@@ -5189,26 +5333,40 @@ async function boot() {
   // а не только после старта записи.
   syncPreviewMeters();
   renderMini();
-  // Тур по программе: при первом запуске и после каждого обновления (версия
-  // программы не совпадает с той, в которой тур показан). В автотестах и в
-  // компактном окне — нет.
+  // После обновления — окно «Что нового» со списком изменений, затем тур;
+  // при первом запуске — только тур (версия программы не совпадает с той,
+  // в которой тур показан). В автотестах и в компактном окне — нет.
   const version = state.info?.version || "";
   const firstRun = !state.settings.tourDone;
   const updated = !firstRun && Boolean(version) && state.settings.tourVersion !== version;
   if ((firstRun || updated) && !state.info?.automation && !compactMode) {
-    const startTour = () =>
-      setTimeout(() => {
-        if (!state.recording && !compactMode) tour.start({ updatedTo: updated ? version : "" });
-      }, 900);
-    // Запуск из автозапуска: окно в трее, тур ждёт, пока его откроют.
-    if (document.visibilityState === "visible") startTour();
-    else {
+    // Запуск из автозапуска: окно в трее, показ ждёт, пока его откроют.
+    const whenVisible = (fn) => {
+      if (document.visibilityState === "visible") {
+        fn();
+        return;
+      }
       const onVisible = () => {
         if (document.visibilityState !== "visible") return;
         document.removeEventListener("visibilitychange", onVisible);
-        startTour();
+        fn();
       };
       document.addEventListener("visibilitychange", onVisible);
+    };
+    if (updated) {
+      whenVisible(() =>
+        setTimeout(() => {
+          if (state.recording || compactMode) return;
+          tourAfterWhatsNew = true;
+          whatsNew.open({ version });
+        }, 900),
+      );
+    } else {
+      whenVisible(() =>
+        setTimeout(() => {
+          if (!state.recording && !compactMode) tour.start({});
+        }, 900),
+      );
     }
   }
 }

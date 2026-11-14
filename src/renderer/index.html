@@ -301,6 +301,7 @@
               <button class="snav is-active" data-section="general" data-i18n="Общий">Общий</button>
               <button class="snav" data-section="theme" data-i18n="Оформление">Оформление</button>
               <button class="snav" data-section="output" data-i18n="Вывод">Вывод</button>
+              <button class="snav" data-section="advanced" data-i18n="Дополнительно">Дополнительно</button>
               <button class="snav" data-section="audio" data-i18n="Звук">Звук</button>
               <button class="snav" data-section="pointer" data-i18n="Мышь">Мышь</button>
               <button class="snav" data-section="mark" data-i18n="Водяной знак">Водяной знак</button>
@@ -336,23 +337,6 @@
                     <option value="5" data-i18n="через 5 мин">через 5 мин</option>
                     <option value="10" data-i18n="через 10 мин">через 10 мин</option>
                     <option value="30" data-i18n="через 30 мин">через 30 мин</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span data-i18n="Кадры в секунду">Кадры в секунду</span>
-                  <select id="sel-fps">
-                    <option value="15">15</option>
-                    <option value="24">24</option>
-                    <option value="30">30</option>
-                    <option value="60">60</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span data-i18n="Качество записи">Качество записи</span>
-                  <select id="sel-quality">
-                    <option value="low" data-i18n="компактнее">компактнее</option>
-                    <option value="balanced" data-i18n="средне">средне</option>
-                    <option value="high" data-i18n="максимум">максимум</option>
                   </select>
                 </label>
                 <label class="field">
@@ -458,6 +442,92 @@
                   </select>
                 </label>
                 <p class="sect-note" id="codec-note"></p>
+              </div>
+
+              <div class="sect" id="sect-advanced">
+                <h3 class="sect-title" data-i18n="Дополнительно">Дополнительно</h3>
+                <p class="sect-note" data-i18n="Разрешение и битрейт видео, частота кадров, качество записи и скриншотов. Настройки применяются к следующей записи.">
+                  Разрешение и битрейт видео, частота кадров, качество записи и скриншотов.
+                  Настройки применяются к следующей записи.
+                </p>
+                <label class="field">
+                  <span data-i18n="Разрешение видео">Разрешение видео</span>
+                  <select id="sel-resolution">
+                    <option value="screen" data-i18n="Экран: родное разрешение">Экран: родное разрешение</option>
+                    <option value="screen169" data-i18n="Экран: строго 16:9">Экран: строго 16:9</option>
+                    <option value="source" data-i18n="Источник (как есть)">Источник (как есть)</option>
+                    <option value="region169" data-i18n="Область: 16:9 (без растяжения)">Область: 16:9 (без растяжения)</option>
+                    <option value="2160">2160p (4K, 3840×2160)</option>
+                    <option value="1440">1440p (2K, 2560×1440)</option>
+                    <option value="1080">1080p (Full HD, 1920×1080)</option>
+                    <option value="720">720p (HD, 1280×720)</option>
+                    <option value="480">480p (854×480)</option>
+                  </select>
+                </label>
+                <p class="sect-note" data-i18n="«Экран» пишет в родном разрешении монитора, а не в размере окна. «Строго 16:9» подрезает или дополняет кадр до пропорций 16:9. «Область: 16:9» дополняет выделение чёрными полями до 16:9 без растяжения — картинка остаётся резкой. Пресеты 1080p/1440p при необходимости увеличивают область.">
+                  «Экран» пишет в родном разрешении монитора, а не в размере окна. «Строго 16:9»
+                  подрезает или дополняет кадр до пропорций 16:9. «Область: 16:9» дополняет
+                  выделение чёрными полями до 16:9 без растяжения — картинка остаётся резкой.
+                  Пресеты 1080p/1440p при необходимости увеличивают область.
+                </p>
+                <label class="field">
+                  <span data-i18n="Кадры в секунду">Кадры в секунду</span>
+                  <select id="sel-fps">
+                    <option value="15">15</option>
+                    <option value="24">24</option>
+                    <option value="30">30</option>
+                    <option value="60">60</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span data-i18n="Качество записи">Качество записи</span>
+                  <select id="sel-quality">
+                    <option value="low" data-i18n="компактнее">компактнее</option>
+                    <option value="balanced" data-i18n="средне">средне</option>
+                    <option value="high" data-i18n="максимум">максимум</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span data-i18n="Кодек H.264 (профиль High)">Кодек H.264 (профиль High)</span>
+                  <select id="sel-encoder">
+                    <option value="auto" data-i18n="Авто: NVENC/QSV, иначе x264">Авто: NVENC/QSV, иначе x264</option>
+                    <option value="x264">x264 (CPU, High)</option>
+                    <option value="nvenc">NVIDIA NVENC (High)</option>
+                    <option value="qsv">Intel Quick Sync (High)</option>
+                    <option value="copy" data-i18n="Без перекода (профиль Chromium)">Без перекода (профиль Chromium)</option>
+                  </select>
+                </label>
+                <p class="sect-note" data-i18n="Финальный файл перекодируется в H.264 High: x264 с preset slower и CRF 16 либо аппаратный NVENC/QSV с CQ 16. Если источник уже High — файл пересобирается без перекода, без потери качества. При остановке записи перекод занимает время; «Авто» выбирает самый быстрый доступный энкодер. Профиль High применяется к H.264, для HEVC действует свой профиль.">
+                  Финальный файл перекодируется в H.264 High: x264 с preset slower и CRF 16 либо
+                  аппаратный NVENC/QSV с CQ 16. Если источник уже High — файл пересобирается без
+                  перекода, без потери качества. При остановке записи перекод занимает время; «Авто»
+                  выбирает самый быстрый доступный энкодер. Профиль High применяется к H.264, для HEVC
+                  действует свой профиль.
+                </p>
+                <label class="field range-field">
+                  <span data-i18n="Битрейт видео">Битрейт видео</span>
+                  <span class="range-wrap">
+                    <input type="range" id="rng-bitrate" min="0" max="200" step="1" value="0" />
+                    <input type="number" id="num-bitrate" class="text-input num-input mono" min="0" max="200" step="1" value="0" />
+                    <span data-i18n="Мбит/с">Мбит/с</span>
+                  </span>
+                </label>
+                <p class="sect-note" data-i18n="Битрейт задаётся в Мбит/с. 0 — авто: значение считается из разрешения, FPS и качества записи. Иначе число ограничивает битрейт и финального файла. Для 1080p60 хватает 12–20 Мбит/с, для 4K — 40–80 Мбит/с.">
+                  Битрейт задаётся в Мбит/с. 0 — авто: значение считается из разрешения, FPS и
+                  качества записи. Иначе число ограничивает битрейт и финального файла. Для 1080p60
+                  хватает 12–20 Мбит/с, для 4K — 40–80 Мбит/с.
+                </p>
+                <label class="field range-field">
+                  <span data-i18n="Качество скриншота (JPEG)">Качество скриншота (JPEG)</span>
+                  <span class="range-wrap">
+                    <input type="range" id="rng-shotquality" min="50" max="100" step="1" value="100" />
+                    <output id="out-shotquality" class="mono">100%</output>
+                  </span>
+                </label>
+                <p class="sect-note" data-i18n="Скриншоты пишутся в исходном разрешении, без уменьшения. Ползунок влияет только на JPEG: 100 — максимум; PNG всегда без потерь.">
+                  Скриншоты пишутся в исходном разрешении, без уменьшения. Ползунок влияет только
+                  на JPEG: 100 — максимум; PNG всегда без потерь.
+                </p>
               </div>
 
               <div class="sect" id="sect-audio">
@@ -769,6 +839,7 @@
             <div class="info-line"><span data-i18n="Файл лога">Файл лога</span><b class="mono" id="about-log">—</b></div>
             <div class="info-line"><span data-i18n="Минидампы падений">Минидампы падений</span><b class="mono" id="about-crashdumps">—</b></div>
             <div class="row-actions">
+              <button id="btn-whatsnew" class="ghost small" data-i18n="Что нового">Что нового</button>
               <button id="btn-check-update" class="ghost small is-on" data-i18n="Проверить обновления">Проверить обновления</button>
               <button id="btn-open-out" class="ghost small" data-i18n="Открыть папку записей">Открыть папку записей</button>
               <button id="btn-open-log" class="ghost small" data-i18n="Открыть папку логов">Открыть папку логов</button>
@@ -900,6 +971,7 @@
           <div class="editor-title" id="editor-title">—</div>
           <div class="editor-head-actions">
             <span class="editor-meta mono" id="editor-meta"></span>
+            <button class="ghost small" id="editor-zoom" title="Масштаб предпросмотра" data-i18n-title="Масштаб предпросмотра"><span id="editor-zoom-label">1:1</span></button>
             <button class="win-btn" id="editor-close" title="Закрыть" data-i18n-title="Закрыть">&#215;</button>
           </div>
         </div>

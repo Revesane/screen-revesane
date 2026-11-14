@@ -1090,6 +1090,15 @@ select option { background: var(--surface); color: var(--txt); }
 /* Ползунок громкости: тонкая дорожка, заливка до бегунка, бирюзовый бегунок. */
 .range-wrap { display: flex; align-items: center; gap: 12px; }
 .range-wrap output { min-width: 3.4em; text-align: right; color: var(--txt-dim); font-variant-numeric: tabular-nums; }
+/* Числовое поле битрейта: компактное, чтобы стоять в одном ряду с ползунком. */
+.range-wrap .num-input {
+  flex: 0 0 78px;
+  width: 78px;
+  min-width: 0;
+  max-width: 78px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 input[type="range"] {
   --fill: 50%;
   appearance: none;
@@ -1268,6 +1277,9 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px 
   inset: 0;
   z-index: 50;
   display: grid;
+  /* Колонка не должна расти под контент: иначе видео 1:1 уводит карточку
+     за край окна при центрировании. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   background: rgba(6, 9, 12, 0.72);
   backdrop-filter: blur(2px);
@@ -1482,7 +1494,16 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px 
   height: 100%;
   background: #05070a;
 }
-.editor-card:fullscreen .editor-stage video,
+.editor-card:fullscreen .editor-stage video {
+  /* grid-строка auto не резолвит проценты высоты — без absolute кадр обрезает. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 .editor-card:fullscreen .editor-stage img,
 .editor-card:fullscreen .editor-stage canvas {
   max-height: 100%;
@@ -1490,6 +1511,20 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px 
   width: auto;
   max-width: 100%;
   object-fit: contain;
+}
+/* 1:1 — родные пиксели с прокруткой: дробный масштаб не мылит текст. */
+.editor-stage.is-native { display: flex; overflow: auto; max-height: 52vh; min-height: 0; }
+.editor-card .editor-stage.is-native video,
+.editor-card:fullscreen .editor-stage.is-native video {
+  position: static;
+  inset: auto;
+  flex: none;
+  margin: auto;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
 }
 .editor-card:fullscreen .editor-timeline { height: 38px; }
 
